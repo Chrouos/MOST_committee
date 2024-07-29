@@ -26,9 +26,11 @@ def load_into_chroma_bge_manager(is_industry=False):
     
     if is_industry:
         chroma_db_path = find_key_path('CHROMA_INDUSTRY')
+        client = chromadb.PersistentClient(path=chroma_db_path)
         collection = client.get_or_create_collection("CHROMA_INDUSTRY")
     else:
         chroma_db_path = find_key_path('CHROMA')
+        client = chromadb.PersistentClient(path=chroma_db_path)
         collection = client.get_or_create_collection("CHROMA")
     
     #- load the database
