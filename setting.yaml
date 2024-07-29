@@ -1,0 +1,37 @@
+SOURCE:
+    data: # 資料夾
+        research_proj:
+            計畫申請案件: (勿對外公開資料或流傳)108-112年智慧計算學門大批專題計畫申請案件(含中英文摘要及關鍵字)1130215.xlsx
+            統計清單: (密件)智慧計算學門統計1130130.xlsx
+            曾任委員: 前任委員名單.txt
+            研究計畫申請名冊: 研究計畫申請名冊.xlsx
+            研究計畫申請名冊欄位: ['編號', '計畫名稱', '中文關鍵字']
+            計畫申請案件年分: ["108", "109", "110", "111", "112"]
+
+        industry_coop: # 資料夾
+            產學計劃: 108-112產學計畫E41申請名冊.xlsx
+            產學申請名冊: 產學計畫申請名冊.xlsx
+            產學申請名冊欄位: ['單位編號', '計畫名稱', '中文關鍵字']
+
+        crawler: # 資料夾
+            查找碩博士名單: NST.xlsx
+            碩博士論文: NST_crawler.xlsx
+            碩博士論文_RDF: NST_crawler_RDF.xlsx
+            
+OUTPUT:
+    data: # 資料夾
+        output: # 資料夾
+            BGE_MANAGER: manager_group.json
+            BGE_INDUSTRY_MANAGER: manager_group_industry.json
+            統計表分析: 推薦表統合與分析.xlsx
+            過濾相近後統計表: 過濾相近後統計表.xlsx
+            統計清單人才資料_RDF: 統計清單人才資料_RDF.xlsx #= 委員們過去就職過的學校
+            統計清單人才資料_RDF_UNI: 統計清單人才資料_RDF_UNI.xlsx 
+            FINAL_COMMITTEE: 推薦表統合_VBA.xlsx
+
+DATABASE:
+    database: # 資料庫
+        CHROMA: chroma_database
+        
+
+        

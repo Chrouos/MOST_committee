@@ -1,0 +1,6 @@
+data
+chroma-viewer
+chroma_database
+
+__pycache__
+.DS_Store
