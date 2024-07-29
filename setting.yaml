@@ -32,6 +32,7 @@ OUTPUT:
 DATABASE:
     database: # 資料庫
         CHROMA: chroma_database
+        CHROMA_INDUSTRY: chroma_database_industry
         
 
         

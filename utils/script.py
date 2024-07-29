@@ -75,8 +75,12 @@ def load_into_chroma_bge_manager(is_industry=False):
         
 def search_v3(is_industry=False, tabs=['E41']):
 
-    chroma_db_path = find_key_path('CHROMA')
-    vectorstore = Chroma("CHROMA", persist_directory=chroma_db_path, embedding_function=get_embeddings_zh())
+    if is_industry:
+        chroma_db_path = find_key_path('CHROMA_INDUSTRY')
+        vectorstore = Chroma("CHROMA_INDUSTRY", persist_directory=chroma_db_path, embedding_function=get_embeddings_zh())
+    else:
+        chroma_db_path = find_key_path('CHROMA')
+        vectorstore = Chroma("CHROMA", persist_directory=chroma_db_path, embedding_function=get_embeddings_zh())
     
     output_excel_folder_path = find_key_path("統計表分析")
     
