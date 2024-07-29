@@ -18,7 +18,7 @@
 
 
 # 使用
-
+安裝 GIT: https://git-scm.com/downloads
 `git clone https://github.com/Chrouos/MOST_committee.git`
 
 1. 安裝環境
@@ -41,6 +41,9 @@
 ```
 conda update conda
 conda create --name MOST python=3.11.5
+conda init
+
+# 重新啟動 terminal
 conda activate MOST
 
 pip install -r requirement.txt
