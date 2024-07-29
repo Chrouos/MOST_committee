@@ -24,10 +24,15 @@ class MissingFieldsException(Exception):
 
 def load_into_chroma_bge_manager(is_industry=False):
     
+    if is_industry:
+        chroma_db_path = find_key_path('CHROMA_INDUSTRY')
+        collection = client.get_or_create_collection("CHROMA_INDUSTRY")
+    else:
+        chroma_db_path = find_key_path('CHROMA')
+        collection = client.get_or_create_collection("CHROMA")
+    
     #- load the database
-    chroma_db_path = find_key_path('CHROMA')
     client = chromadb.PersistentClient(path=chroma_db_path)
-    collection = client.get_or_create_collection("CHROMA")
 
     manager_group = {}
     if is_industry: df_list = get_industry_coop_proj()
