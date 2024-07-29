@@ -18,7 +18,7 @@ def main():
     parser = argparse.ArgumentParser(description="檢查是否要打印設定數據")
     parser.add_argument('--print_setting', action='store_true', help='如果提供這個選項，則打印設定數據')
     parser.add_argument('--is_industry', type=str2bool, default=True, help='(研究計畫＝False, 產業專案＝True)')
-    parser.add_argument('--is_load_chroma_bge', type=str2bool, default=False, help='(不匯入資料庫＝False, 匯入資料庫＝True)')
+    parser.add_argument('--is_load_chroma_bge', type=str2bool, default=True, help='(不匯入資料庫＝False, 匯入資料庫＝True)')
     
     args = parser.parse_args()
     
