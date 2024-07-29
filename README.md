@@ -1,11 +1,7 @@
 ## How to use (huai)
 1. Preprare the data and write the `setting.yaml` to waiting for start the process. 
-2. Run `load_into_chroma_bge_manager.py`, which will save embedding into chroma
-3. run `search_v3.py`
-
-## Use Method Example
-+ `python .\main.py --print_setting` 輸出 yaml 檔案
-+ `python 
+2. run crawler.pt to spider the data.
+3. run main.py to committee
 
 ## Strategy 
 
@@ -22,6 +18,8 @@
 
 
 # 使用
+
+`git clone https://github.com/Chrouos/MOST_committee.git`
 
 1. 安裝環境
 2. 執行程式碼
