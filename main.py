@@ -29,8 +29,8 @@ def main():
     if args.is_load_chroma_bge:
         load_into_chroma_bge_manager(is_industry)
         
-    # search_v3(is_industry) 
-    # statistic_committee() #= output: 統計清單人才資料_RDF
+    search_v3(is_industry) 
+    statistic_committee() #= output: 統計清單人才資料_RDF
     filter_committee(is_industry) #= 篩選人員
     excel_process_VBA()
 

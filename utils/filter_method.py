@@ -87,23 +87,18 @@ def filter_committee_advanced(schools_info, committee_members, filter_pairs):
     :return: 一個字典，包含過濾前後的委員名單和未過濾的委員名單，以及過濾原因
     """
     
-    # print("schools_info:\n", schools_info)
-    # print("committee_members:\n", committee_members)
-    # print("filter_pairs:\n", filter_pairs)
-    # print()
-    
     filtered_members = set()
     filter_reasons = {}
 
     # 根據配對條件進行過濾
     for school_type, member_field in filter_pairs:
         if school_type in schools_info and schools_info[school_type]:
+            school_list = schools_info[school_type] if isinstance(schools_info[school_type], list) else [schools_info[school_type]]
             for member in committee_members:
-                # 檢查是否有匹配的學校導致過濾
-                matching_schools = [school for school in member[member_field] if school == schools_info[school_type]]
+                matching_schools = [school for school in member[member_field] if school in school_list and school]
                 if matching_schools:
                     filtered_members.add(member['委員名稱'])
-                    filter_reasons[member['委員名稱']] = f"{school_type} ({schools_info[school_type]}) 與 {member_field} ({', '.join(matching_schools)}) 重疊"
+                    filter_reasons[member['委員名稱']] = f"{school_type} 與 {member_field} ({', '.join(matching_schools)}) 重疊"
 
     # 創建過濾後的委員名單
     remaining_members = [member['委員名稱'] for member in committee_members if member['委員名稱'] not in filtered_members]
@@ -113,4 +108,30 @@ def filter_committee_advanced(schools_info, committee_members, filter_pairs):
         'Filtered Members': list(filtered_members),
         'Remaining Members': remaining_members,
         'Filter Reasons': filter_reasons
+    }
+    
+def merge_committee_advanced(result1, result2):
+    """
+    合併兩個過濾結果。
+
+    :param result1: 第一個過濾結果字典
+    :param result2: 第二個過濾結果字典
+    :return: 合併後的過濾結果字典
+    """
+    print(result1)
+    print(result2)
+    
+    # 合併 'Filtered Members'
+    merged_filtered_members = list(set(result1['Filtered Members'] + result2['Filtered Members']))
+    
+    # 合併 'Remaining Members'
+    merged_remaining_members = list(set(result1['Remaining Members'] + result2['Remaining Members']) - set(merged_filtered_members))
+    
+    # 合併 'Filter Reasons'
+    merged_filter_reasons = {**result1['Filter Reasons'], **result2['Filter Reasons']}
+    
+    return {
+        'Filtered Members': merged_filtered_members,
+        'Remaining Members': merged_remaining_members,
+        'Filter Reasons': merged_filter_reasons
     }

@@ -17,7 +17,7 @@ from langchain_community.vectorstores.chroma import Chroma
 from utils.load_former_manager import get_former_manager
 
 from utils.get_setting import setting_data, print_setting_data, find_key_path, value_of_key
-from utils.filter_method import split_institution, extract_text_in_parentheses, find_crawler_person_relative_school, filter_committee_advanced
+from utils.filter_method import *
 
 class MissingFieldsException(Exception):
     pass
@@ -301,11 +301,13 @@ def filter_committee(is_industry=False):
                 })
                 
             # = 申請學校 + 主持人學校 + 共同主持人學校
-            apply_school = {}
+            total_committee_person_dict_result = {
+                'Filtered Members': [],
+                'Remaining Members': [],
+                'Filter Reasons': {}
+            }
             for sheet in apply_list_file.sheet_names: 
                 current_sheet_apply_excel_data = pd.read_excel(apply_list_file, sheet_name=sheet)
-                print("current_sheet_apply_excel_data", current_sheet_apply_excel_data["計畫名稱"])
-                print(", statistical_row", statistical_row["計畫名稱"])
                 find_temp_df = current_sheet_apply_excel_data[
                     current_sheet_apply_excel_data["計畫名稱"] == statistical_row["計畫名稱"]
                 ]
@@ -322,19 +324,17 @@ def filter_committee(is_industry=False):
                     project_manager_school = list([find_crawler_person_relative_school(name, crawler_RDF_data) for name, department in common_joint_list])
                     apply_school = {
                         "計畫申請學校": split_institution(row[value_of_key("申請機構欄位名稱")])[0], 
-                        "共同計畫主持的學校": [split_institution(department)[1] for name, department in common_joint_list],
+                        "共同計畫主持的學校": [split_institution(department)[0] for name, department in common_joint_list],
                         "計畫主持人過去畢業的學校": find_crawler_person_relative_school(value_of_key("申請主持人欄位名稱"), crawler_RDF_data),
                         "共同主持人過去畢業的學校": list(chain.from_iterable(chain.from_iterable(project_manager_school))),
                     }
                     
+                    #~ 審查委員不能與計劃申請學校(包含共同主持人)有關
+                    filter_pairs = [("計畫申請學校", "委員曾就職學校"), ("共同計畫主持的學校", "委員曾就職學校")]
+                    current_committee_person_dict_result = filter_committee_advanced(apply_school, committee_person_dict, filter_pairs)
+                    total_committee_person_dict_result = merge_committee_advanced(total_committee_person_dict_result, current_committee_person_dict_result)
+                    
                 if len(find_temp_df) > 0: break #= 找不到東西，跳掉
-                
-            #~ 審查委員不能與計劃申請學校(包含共同主持人)有關
-            filter_pairs = [("計畫申請學校", "委員曾就職學校"), ("共同計畫主持的學校", "委員曾就職學校")]
-            committee_person_dict = filter_committee_advanced(apply_school, committee_person_dict, filter_pairs)
-            
-            print(committee_person_dict)
-            break
         
             #- Input Selector
             # final_committee_person_list = [item for item in committee_person_dict["Remaining Members"][:3]]
@@ -342,8 +342,8 @@ def filter_committee(is_industry=False):
             #     statistical_row[f"選取委員{index+1}"] = name
             
             #- Reason
-            statistical_row["篩掉人員"] = committee_person_dict["Filtered Members"]
-            statistical_row["篩選原因"] = committee_person_dict["Filter Reasons"]
+            statistical_row["篩掉人員"] = total_committee_person_dict_result["Filtered Members"]
+            statistical_row["篩選原因"] = total_committee_person_dict_result["Filter Reasons"]
             
             result_dict.append(statistical_row)
             
