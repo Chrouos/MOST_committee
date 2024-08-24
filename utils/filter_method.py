@@ -3,24 +3,45 @@ import re
 
 # 處理機關名稱分成學校和系所
 def split_institution(department_full):
+    if not isinstance(department_full, str) or department_full.strip() == "":
+        return pd.Series(['', ''])
+    
     keywords = ['大學', '院', '博物館', '學校', '法人']  # 列出所有可能的分割關鍵字
     for keyword in keywords:
         if keyword in department_full:
             school, department = department_full.split(keyword, 1)
             school += keyword  # 將關鍵字加回學校名稱中
             return pd.Series([school.strip(), department.strip()])
+    
     return pd.Series([department_full.strip(), ''])  # 如果沒有關鍵字，就只有學校沒有系所
 
 # 找到括號的位置
 def extract_text_in_parentheses(text):
-    if text: return [['', '']]
+    if isinstance(text, str):
+        if text == "":
+            return [['', '']]
+        
+        # 捕捉名字和括號內的內容
+        pattern = r'([^;]+)\(([^)]+)\)' 
+        matches = re.findall(pattern, text)
+        
+        if matches:  details = [[match[0].strip(), match[1]] for match in matches] # 成對的
+        else:
+            # 如果沒有匹配到括號中的內容，檢查是否是部門名稱
+            if "大學" in text or "學系" in text or "研究所" in text:
+                details = [["", text.strip()]]
+            else:
+                details = [[text.strip(), '']]
+        
+        return details
     
-    pattern = r'([^;]+)\(([^)]+)\)'  # 捕捉名字和括號內的內容
-    matches = re.findall(pattern, text)
-    
-    details = [[match[0].strip(), match[1]] for match in matches]
-    
-    return details
+    elif isinstance(text, list):
+        result = []
+        for item in text:
+            result.extend(extract_text_in_parentheses(item))
+        return result
+
+    return []
     
 # 找到碩博士論文網中學生的名
 def find_crawler_person_relative_school(person, crawler_RDF_data):
