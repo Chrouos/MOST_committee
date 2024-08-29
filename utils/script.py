@@ -313,7 +313,7 @@ def filter_committee(is_industry=False):
                 ]
                 
                 for index, row in find_temp_df.iterrows(): 
-                    joint_person_list = row[value_of_key("申請共同主持人")].tolist()
+                    joint_person_list = row.get(value_of_key("申請共同主持人"), [])
                     joint_department_list = row[value_of_key("申請共同機構欄位名稱")].tolist()
                     common_person_dict = extract_text_in_parentheses(joint_person_list)
                     common_department_dict = extract_text_in_parentheses(joint_department_list)

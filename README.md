@@ -55,9 +55,9 @@ pip install -r requirement.txt
 python main.py --is_industry False --is_load_chroma_bge False
 
 # 產學合作
-python main.py --is_industry True # --is_load_chroma_bge False
+python main.py --is_industry True --is_load_chroma_bge False
 
-#!!! 如果已經存入過資料庫了(預設) 若有需要重新匯入資料 is_load_chroma_bge 才是 False
+#!!! 如果已經存入過資料庫了(預設) 若有需要重新匯入資料 is_load_chroma_bge 需要是 True
 
 # 爬蟲碩博士論文網
 python crawler.py
