@@ -136,7 +136,9 @@ def search_v3(is_industry=False):
                 project_name = df.iloc[i]['計畫名稱']
                 keywords = df.iloc[i]['中文關鍵字']
                 
-                documents = vectorstore.similarity_search_with_relevance_scores(project_name, k=RECOMMAND_AMOUNT)
+                # 找尋相似度
+                current_text_combine = project_name + ' ' + keywords
+                documents = vectorstore.similarity_search_with_relevance_scores(current_text_combine, k=RECOMMAND_AMOUNT)
         
                 for j, (doc, score) in enumerate(documents):
                     df.loc[df.index[i], '推薦委員' + str(j + 1)] = doc.metadata['manager']

@@ -24,7 +24,7 @@ def main():
     
     # : actual choice
     if args.print_setting: print_setting_data()
-    is_industry = args.is_industry
+    is_industry = args.is_industryc
     
     if args.is_load_chroma_bge:
         load_into_chroma_bge_manager(is_industry)
