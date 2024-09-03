@@ -22,64 +22,67 @@ from utils.filter_method import *
 class MissingFieldsException(Exception):
     pass
 
+
 def load_into_chroma_bge_manager(is_industry=False):
-    
-    if is_industry:
-        chroma_db_path = find_key_path('CHROMA_INDUSTRY')
-        client = chromadb.PersistentClient(path=chroma_db_path)
-        collection = client.get_or_create_collection("CHROMA_INDUSTRY")
-    else:
-        chroma_db_path = find_key_path('CHROMA')
-        client = chromadb.PersistentClient(path=chroma_db_path)
-        collection = client.get_or_create_collection("CHROMA")
-    
-    #- load the database
+    # Determine the Chroma database path based on the industry flag
+    chroma_db_key = 'CHROMA_INDUSTRY' if is_industry else 'CHROMA'
+    chroma_db_path = find_key_path(chroma_db_key)
     client = chromadb.PersistentClient(path=chroma_db_path)
+    collection_name = chroma_db_key
+    collection = client.get_or_create_collection(collection_name)
+
+    # Retrieve the relevant dataframes based on the industry flag
+    df_list = get_industry_coop_proj() if is_industry else get_project_df()
 
     manager_group = {}
-    if is_industry: df_list = get_industry_coop_proj()
-    else: df_list = get_project_df()
-    
-    for key in df_list:
-        year_data = df_list[key]
-
-        for i in tqdm.tqdm(range(len(year_data)),desc=key):
+    for key, year_data in df_list.items():
+        for i in tqdm.tqdm(range(len(year_data)), desc=key):
             manager = year_data.iloc[i]['計畫主持人']
             project_name = year_data.iloc[i]['計畫中文名稱']
-            if is_industry: abstract = year_data.iloc[i]['計畫中文摘要']
-            else: abstract = year_data.iloc[i]['中文摘要']
+            abstract_key = '計畫中文摘要' if is_industry else '中文摘要'
+            abstract = year_data.iloc[i][abstract_key]
             keywords = year_data.iloc[i]['中文關鍵字']
             
-            if is_industry == False:
-                if_pass = year_data.iloc[i]['通過']
-                if if_pass != 'true': continue #@ 只保留通過的計畫
-                
-            text = str(project_name) + " " + str(abstract) + " " + str(keywords) + "\n"
-
-            if manager not in manager_group: manager_group[manager] = text
-            else: manager_group[manager] += text
-
-    # save to chroma
-    for manager in tqdm.tqdm(manager_group):
-        embeddings = None
-        for _ in range(3): # max retry = 3
-            embeddings = calculate_docs_embedding_zh([manager_group[manager]])
-            if embeddings: break
+            # Skip projects that are not approved when not dealing with industry data
+            if not is_industry and year_data.iloc[i]['通過'] != 'true':
+                continue
             
-        # 檢查資料庫中是否已有該主持人的條目
+            # Concatenate the project information
+            text = f"{project_name} {abstract} {keywords}\n"
+            
+            # Group by manager, appending project information
+            if manager in manager_group:
+                manager_group[manager] += text
+            else:
+                manager_group[manager] = text
+
+    # Save the manager data into the Chroma database
+    for manager, text in tqdm.tqdm(manager_group.items(), desc="Saving to Chroma"):
+        # Attempt to calculate embeddings with a max of 3 retries
+        embeddings = None
+        for _ in range(3):
+            embeddings = calculate_docs_embedding_zh([text])
+            if embeddings:
+                break
+        
+        # Upsert manager's project data into the Chroma collection
         collection.upsert(
-            documents=[manager_group[manager]],
+            documents=[text],
             ids=[manager],
             embeddings=embeddings,
             metadatas=[{'manager': manager}]
         )
 
-    if is_industry: bge_manager_path = find_key_path("BGE_INDUSTRY_MANAGER")
-    else: bge_manager_path = find_key_path('BGE_MANAGER')
+    # Determine the path for saving manager group data
+    bge_manager_key = "BGE_INDUSTRY_MANAGER" if is_industry else "BGE_MANAGER"
+    bge_manager_path = find_key_path(bge_manager_key)
     
+    # Save manager group data to a JSON file
     with open(bge_manager_path, 'w', encoding='utf-8') as f:
-        f.write(json.dumps(manager_group, ensure_ascii=False))
-        
+        json.dump(manager_group, f, ensure_ascii=False)
+
+
+
 def search_v3(is_industry=False):
     
     # 取得計畫相關的欄位值
@@ -216,12 +219,12 @@ def highligh_former_manager(writer, tab, former_manager, output_excel):
 
 def statistic_committee():
     
-    apply_project_file_year = value_of_key("計畫申請案件年分")
+    apply_project_file_year = value_of_key("計畫過去申請案件年分範圍")
     
     statistic_folder_path = find_key_path("統計清單") 
     statistic_excel_file = pd.ExcelFile(statistic_folder_path)
     
-    industry_folder_path = find_key_path("產學計劃")
+    industry_folder_path = find_key_path("產學過去申請名冊")
     industry_data = pd.read_excel(industry_folder_path)
     
     #@ 處理委員的所有相關學校名單: 名稱 - 年份 - 學校 - 職稱
