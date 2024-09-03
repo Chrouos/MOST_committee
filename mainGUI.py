@@ -40,9 +40,9 @@ is_load_chroma_bge_var = tk.BooleanVar(value=True)
 frame = tk.Frame(root)
 frame.pack(pady=20)
 
-tk.Checkbutton(frame, text="打印設定數據", variable=print_setting_var, font=("Helvetica", 14)).grid(row=0, column=0, sticky='w', pady=10, padx=20)
-tk.Checkbutton(frame, text="產業專案 (是/否)", variable=is_industry_var, font=("Helvetica", 14)).grid(row=1, column=0, sticky='w', pady=10, padx=20)
-tk.Checkbutton(frame, text="匯入資料庫 (是/否)", variable=is_load_chroma_bge_var, font=("Helvetica", 14)).grid(row=2, column=0, sticky='w', pady=10, padx=20)
+tk.Checkbutton(frame, text="打印設定設定數據", variable=print_setting_var, font=("Helvetica", 14)).grid(row=0, column=0, sticky='w', pady=10, padx=20)
+tk.Checkbutton(frame, text="產業專案 (是) 究專案(否)", variable=is_industry_var, font=("Helvetica", 14)).grid(row=1, column=0, sticky='w', pady=10, padx=20)
+tk.Checkbutton(frame, text="匯入資料庫 (是/否) 如果是第一次執行需要跑一次", variable=is_load_chroma_bge_var, font=("Helvetica", 14)).grid(row=2, column=0, sticky='w', pady=10, padx=20)
 
 tk.Button(frame, text="執行", command=start_script, font=("Helvetica", 14), width=20, height=2).grid(row=3, column=0, pady=30)
 
