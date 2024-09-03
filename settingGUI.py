@@ -35,7 +35,7 @@ def select_and_update_project_aim(setting_data):
         current_project_aim = selected_aim.get()
         setting_data['SOURCE']['field']['目前執行計畫'] = current_project_aim
         messagebox.showinfo("成功", f"目前執行計劃目標已經設定為: {current_project_aim}")
-        root.quit()
+        root.destroy()  # 正確關閉視窗
 
     button = Button(root, text="確認", command=on_select)
     button.pack(pady=10)
@@ -49,13 +49,15 @@ def select_the_file_update_project_name(setting_data):
     :param setting_data: 讀取的設定資料字典
     """
     root = Tk()
-    root.title("計畫目標選擇")
+    root.title("選擇資料名稱")
     root.geometry("300x150")
     
     current_aim = setting_data['SOURCE']['field']['目前執行計畫']
 
-    if current_aim == "研究計畫": base_directory = os.path.abspath("./data/research_proj/")
-    elif current_aim == "產學合作": base_directory = os.path.abspath("./data/industry_coop/")
+    if current_aim == "研究計畫": 
+        base_directory = os.path.abspath("./data/research_proj/")
+    elif current_aim == "產學合作": 
+        base_directory = os.path.abspath("./data/industry_coop/")
 
     file_window = Toplevel(root)
     file_window.title("選擇檔案")
@@ -72,7 +74,8 @@ def select_the_file_update_project_name(setting_data):
                 elif current_aim == '產學合作':
                     setting_data['SOURCE']['data']['industry_coop']['產學合作申請名冊'] = file_name
                 messagebox.showinfo("成功", f"已更新檔案名稱為: {file_name}")
-                file_window.quit()
+                file_window.destroy()  # 正確關閉視窗
+                root.destroy()  # 關閉主視窗
                 # 呼叫下一步驟的函數來選擇 Sheet
                 select_sheet_from_excel(file_path, setting_data)
             else:
@@ -117,7 +120,7 @@ def select_sheet_from_excel(file_path, setting_data):
         current_sheet = selected_sheet.get()
         setting_data['SOURCE']['field']['計畫SHEET'] = current_sheet
         messagebox.showinfo("成功", f"計畫 SHEET 已更新為: {current_sheet}")
-        root.quit()
+        root.destroy()  # 正確關閉視窗
 
     button = Button(root, text="確認", command=on_select)
     button.pack(pady=10)
