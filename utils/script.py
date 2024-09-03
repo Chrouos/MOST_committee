@@ -82,30 +82,38 @@ def load_into_chroma_bge_manager(is_industry=False):
         
 def search_v3(is_industry=False):
     
+    # 取得計畫相關的欄位值
     tabs = value_of_key("計畫SHEET")
-    
+    project_name_field_name = value_of_key("計畫名稱")
+    chinese_keyword_field_name = value_of_key("中文關鍵字")
+
+    # 取得輸出 Excel 檔案的資料夾路徑
+    output_excel_folder_path = find_key_path("統計表分析")
+
+    # 判斷「研究計畫」與「產學合作」的資料庫路徑
     if is_industry:
         chroma_db_path = find_key_path('CHROMA_INDUSTRY')
         vectorstore = Chroma("CHROMA_INDUSTRY", persist_directory=chroma_db_path, embedding_function=get_embeddings_zh())
+        excel_folder_path = find_key_path("產學合作申請名冊")
     else:
         chroma_db_path = find_key_path('CHROMA')
         vectorstore = Chroma("CHROMA", persist_directory=chroma_db_path, embedding_function=get_embeddings_zh())
-    
-    output_excel_folder_path = find_key_path("統計表分析")
-    
-    if is_industry: excel_folder_path = find_key_path("產學合作申請名冊")
-    else: excel_folder_path = find_key_path("研究計畫申請名冊") 
+        excel_folder_path = find_key_path("研究計畫申請名冊")
         
-    filter_fields = value_of_key("計畫相關欄位")
-
-    xls = pd.ExcelFile(excel_folder_path)
     former_manager = get_former_manager(find_key_path("曾任委員"))
+    
+    # 要輸出的欄位
+    filter_fields = value_of_key("計畫相關其他欄位")
+    filter_fields.extend([project_name_field_name, chinese_keyword_field_name])
 
-    RECOMMAND_AMOUNT = 10
-    SELECT_AMOUNT = 3
+
+    RECOMMAND_AMOUNT = 10   # 要推薦的委員數量
+    SELECT_AMOUNT = 3       # 要選擇的委員數量
     SELECT_BOX_SYMBOL = ['Y', 'Z', 'AA']
 
+    xls = pd.ExcelFile(excel_folder_path)
     writer = pd.ExcelWriter(output_excel_folder_path, engine='openpyxl')
+    
     try:
         for tab in tabs:
             page_manager_list = []
@@ -133,8 +141,8 @@ def search_v3(is_industry=False):
             # process data
             for i in tqdm.tqdm(range(len(df)), desc=tab):
                 manager_list = []
-                project_name = df.iloc[i]['計畫名稱']
-                keywords = df.iloc[i]['中文關鍵字']
+                project_name = df.iloc[i][project_name_field_name]
+                keywords = df.iloc[i][chinese_keyword_field_name]
                 
                 # 找尋相似度
                 current_text_combine = project_name + ' ' + keywords
