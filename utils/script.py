@@ -93,12 +93,10 @@ def search_v3(is_industry=False):
     
     output_excel_folder_path = find_key_path("統計表分析")
     
-    if is_industry:
-        excel_folder_path = find_key_path("產學申請名冊")
-        filter_fields = value_of_key("產學申請名冊欄位")
-    else:
-        excel_folder_path = find_key_path("研究計畫申請名冊") 
-        filter_fields = value_of_key("研究計畫申請名冊欄位")
+    if is_industry: excel_folder_path = find_key_path("產學合作申請名冊")
+    else: excel_folder_path = find_key_path("研究計畫申請名冊") 
+        
+    filter_fields = value_of_key("計畫相關欄位")
 
     xls = pd.ExcelFile(excel_folder_path)
     former_manager = get_former_manager(find_key_path("曾任委員"))
@@ -257,7 +255,7 @@ def filter_committee(is_industry=False):
     statistical_analysis_file = pd.ExcelFile(statistical_analysis_folder_path)
     
     if is_industry:
-        apply_list_folder_path = find_key_path("產學申請名冊")
+        apply_list_folder_path = find_key_path("產學合作申請名冊")
     else:
         apply_list_folder_path = find_key_path("研究計畫申請名冊") 
         

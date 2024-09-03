@@ -2,6 +2,7 @@ import yaml
 import os
 
 # - 打開 YAML 檔案並讀取數據
+setting_data = None
 with open('./setting.yaml', 'r', encoding='utf-8') as file:
     setting_data = yaml.safe_load(file)
 
