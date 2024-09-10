@@ -95,36 +95,37 @@ def select_the_file_update_project_name(setting_data):
 def select_sheet_from_excel(file_path, setting_data):
     """
     讀取 Excel 檔案中的 Sheet，並讓使用者選擇要使用的 Sheet 名稱。
-    更新設定資料的 '計畫SHEET' 欄位。
+    更新設定資料的 '計畫SHEET' 欄位為 LIST。
     :param file_path: Excel 檔案的路徑
     :param setting_data: 讀取的設定資料字典
     """
     root = Tk()
-    root.title("選擇計畫 SHEET")
-    root.geometry("300x150")
+    root.title("選擇計畫 SHEET (所有 SHEET 欄位記得統一)")
+    root.geometry("300x300")
 
     # 讀取 Excel 檔案中的 Sheets
     workbook = load_workbook(file_path, read_only=True)
     sheets = workbook.sheetnames
 
-    selected_sheet = StringVar()
-    selected_sheet.set(sheets[0])  # 預設選擇第一個 sheet
-
-    label = Label(root, text="請選擇計畫 SHEET:")
-    label.pack(pady=10)
-
-    combobox = Combobox(root, textvariable=selected_sheet, values=sheets, state="readonly")
-    combobox.pack(pady=10)
+    # 使用 Listbox 進行多選
+    listbox = Listbox(root, selectmode=MULTIPLE)
+    for sheet in sheets:
+        listbox.insert('end', sheet)
+    listbox.pack(pady=20)
 
     def on_select():
-        current_sheet = selected_sheet.get()
-        setting_data['SOURCE']['field']['計畫SHEET'] = current_sheet
-        messagebox.showinfo("成功", f"計畫 SHEET 已更新為: {current_sheet}")
-        root.destroy()  # 正確關閉視窗
+        selected_indices = listbox.curselection()
+        selected_sheets = [sheets[i] for i in selected_indices]
+        if selected_sheets:
+            setting_data['SOURCE']['field']['計畫SHEET'] = selected_sheets
+            messagebox.showinfo("成功", f"計畫 SHEET 已更新為: {', '.join(selected_sheets)}")
+            root.destroy()  # 正確關閉視窗
+        else:
+            messagebox.showerror("錯誤", "至少選擇一個 SHEET。")
 
     button = Button(root, text="確認", command=on_select)
     button.pack(pady=10)
-    
+
     root.mainloop()
     
 def confirm_and_update_project_name_column(file_path, sheet_name, setting_data):
@@ -137,10 +138,11 @@ def confirm_and_update_project_name_column(file_path, sheet_name, setting_data):
     :param setting_data: 讀取的設定資料字典
     """
     root = Tk()
-    root.title("確認計畫相關欄位")
+    root.title("確認計畫相關欄位，如果必填沒有請去補齊!")
     root.geometry("500x800")
 
     # 讀取指定 Sheet 的欄位
+    print(file_path, sheet_name)
     workbook = load_workbook(file_path, read_only=True)
     sheet = workbook[sheet_name]
     
@@ -150,16 +152,19 @@ def confirm_and_update_project_name_column(file_path, sheet_name, setting_data):
     # 設定選擇框的預設值
     selected_project_name_column = StringVar()
     selected_keyword_column = StringVar()
+    selected_abstract_column = StringVar()
     selected_institution_column = StringVar()
     selected_lead_researcher_column = StringVar()
 
     # 設定「計畫名稱」和「中文關鍵字」的初始值
     current_project_name_column = setting_data['SOURCE']['field'].get('計畫名稱', '')
     current_keyword_column = setting_data['SOURCE']['field'].get('中文關鍵字', '')
+    current_abstract_column = setting_data['SOURCE']['field'].get('計劃摘要', '')
 
     selected_project_name_column.set(current_project_name_column if current_project_name_column in columns else columns[0])
     selected_keyword_column.set(current_keyword_column if current_keyword_column in columns else columns[0])
-
+    selected_abstract_column.set(current_abstract_column if current_abstract_column in columns else columns[0])
+    
     # 其他欄位可以為空，初始為空
     selected_institution_column.set("")
     selected_lead_researcher_column.set("")
@@ -170,18 +175,25 @@ def confirm_and_update_project_name_column(file_path, sheet_name, setting_data):
     selected_other_related_columns = []
 
     # 顯示計畫名稱選擇的 GUI
-    project_name_label = Label(root, text="請選擇屬於計畫名稱的欄位:")
+    project_name_label = Label(root, text="請選擇屬於計畫名稱的欄位(必):")
     project_name_label.pack(pady=5)
 
     project_name_combobox = Combobox(root, textvariable=selected_project_name_column, values=columns, state="readonly")
     project_name_combobox.pack(pady=5)
 
     # 顯示中文關鍵字選擇的 GUI
-    keyword_label = Label(root, text="請選擇屬於中文關鍵字的欄位:")
+    keyword_label = Label(root, text="請選擇屬於中文關鍵字的欄位(必):")
     keyword_label.pack(pady=5)
 
     keyword_combobox = Combobox(root, textvariable=selected_keyword_column, values=columns, state="readonly")
     keyword_combobox.pack(pady=5)
+    
+    # 顯示中文關鍵字選擇的 GUI
+    abstract_label = Label(root, text="請選擇屬於計劃摘要的欄位(必):")
+    abstract_label.pack(pady=5)
+
+    abstract_combobox = Combobox(root, textvariable=selected_abstract_column, values=columns, state="readonly")
+    abstract_combobox.pack(pady=5)
 
     # 顯示申請機構選擇的 GUI
     institution_label = Label(root, text="請選擇屬於申請機構(學校)的欄位 (可為空):")
@@ -228,8 +240,9 @@ def confirm_and_update_project_name_column(file_path, sheet_name, setting_data):
         # 確認「計畫名稱」和「中文關鍵字」是否選擇
         project_name_column = selected_project_name_column.get()
         keyword_column = selected_keyword_column.get()
+        abstract_column = selected_abstract_column.get()
 
-        if not project_name_column or not keyword_column:
+        if not project_name_column or not keyword_column or not abstract_column:
             messagebox.showerror("錯誤", "計畫名稱和中文關鍵字欄位不可為空，請選擇合適的欄位。")
             return
 
@@ -250,6 +263,7 @@ def confirm_and_update_project_name_column(file_path, sheet_name, setting_data):
         # 更新設定資料
         setting_data['SOURCE']['field']['計畫名稱'] = project_name_column
         setting_data['SOURCE']['field']['中文關鍵字'] = keyword_column
+        setting_data['SOURCE']['field']['計劃摘要'] = abstract_column
         setting_data['SOURCE']['field']['申請機構欄位名稱'] = institution_column
         setting_data['SOURCE']['field']['申請主持人欄位名稱'] = lead_researcher_column
         setting_data['SOURCE']['field']['計畫相關其他欄位'] = selected_other_related
@@ -260,6 +274,7 @@ def confirm_and_update_project_name_column(file_path, sheet_name, setting_data):
             "成功",
             f"計畫名稱欄位已設定為: {project_name_column}\n"
             f"中文關鍵字欄位已設定為: {keyword_column}\n"
+            f"計劃摘要欄位已設定為: {abstract_column}\n"
             f"申請機構欄位已設定為: {institution_column}\n"
             f"申請主持人欄位已設定為: {lead_researcher_column}\n"
             f"計畫相關其他欄位已設定為: {', '.join(selected_other_related) if selected_other_related else '無'}\n"
@@ -279,7 +294,12 @@ try:
         setting_data = yaml.load(file)
 
     select_and_update_project_aim(setting_data)
+    with open(DEFAULT_SETTING_YAML, 'w', encoding='utf-8') as file:
+        yaml.dump(setting_data, file)
+        
     select_the_file_update_project_name(setting_data)
+    with open(DEFAULT_SETTING_YAML, 'w', encoding='utf-8') as file:
+        yaml.dump(setting_data, file)
 
     # 根據目前執行計畫來決定檔案路徑
     current_aim = setting_data['SOURCE']['field']['目前執行計畫']
@@ -290,7 +310,7 @@ try:
 
     # 取得選擇的計畫 SHEET 名稱
     sheet_name = setting_data['SOURCE']['field']['計畫SHEET']
-    confirm_and_update_project_name_column(file_path, sheet_name, setting_data)
+    confirm_and_update_project_name_column(file_path, sheet_name[0], setting_data)
 
     with open(DEFAULT_SETTING_YAML, 'w', encoding='utf-8') as file:
         yaml.dump(setting_data, file)

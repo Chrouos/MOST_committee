@@ -39,7 +39,7 @@ def load_into_chroma_bge_manager(is_industry=False):
         for i in tqdm.tqdm(range(len(year_data)), desc=key):
             manager = year_data.iloc[i]['計畫主持人']
             project_name = year_data.iloc[i]['計畫中文名稱']
-            abstract_key = '計畫中文摘要' if is_industry else '中文摘要'
+            abstract_key = year_data.iloc[i]['計劃摘要']
             abstract = year_data.iloc[i][abstract_key]
             keywords = year_data.iloc[i]['中文關鍵字']
             
@@ -106,7 +106,8 @@ def search_v3(is_industry=False):
     former_manager = get_former_manager(find_key_path("曾任委員"))
     
     # 要輸出的欄位
-    filter_fields = value_of_key("計畫相關其他欄位")
+    other_fields = value_of_key("計畫相關其他欄位")
+    filter_fields = other_fields.copy() if other_fields else []
     filter_fields.extend([project_name_field_name, chinese_keyword_field_name])
 
 
@@ -148,7 +149,7 @@ def search_v3(is_industry=False):
                 keywords = df.iloc[i][chinese_keyword_field_name]
                 
                 # 找尋相似度
-                current_text_combine = project_name + ' ' + keywords
+                current_text_combine = str(project_name) + ' ' + str(keywords)
                 documents = vectorstore.similarity_search_with_relevance_scores(current_text_combine, k=RECOMMAND_AMOUNT)
         
                 for j, (doc, score) in enumerate(documents):
@@ -324,8 +325,8 @@ def filter_committee(is_industry=False):
                 ]
                 
                 for index, row in find_temp_df.iterrows(): 
-                    joint_person_list = row.get(value_of_key("申請共同主持人"), [])
-                    joint_department_list = row[value_of_key("申請共同機構欄位名稱")].tolist()
+                    joint_person_list = row.get(value_of_key("申請共同主持人"), pd.Series()).tolist()
+                    joint_department_list = row.get(value_of_key("申請共同機構欄位名稱"), pd.Series()).tolist() 
                     common_person_dict = extract_text_in_parentheses(joint_person_list)
                     common_department_dict = extract_text_in_parentheses(joint_department_list)
                     
@@ -334,7 +335,7 @@ def filter_committee(is_industry=False):
                     # 找到關聯性
                     project_manager_school = list([find_crawler_person_relative_school(name, crawler_RDF_data) for name, department in common_joint_list])
                     apply_school = {
-                        "計畫申請學校": split_institution(row[value_of_key("申請機構欄位名稱")])[0], 
+                        "計畫申請學校": split_institution(row.get(value_of_key("申請機構欄位名稱"), ''))[0], 
                         "共同計畫主持的學校": [split_institution(department)[0] for name, department in common_joint_list],
                         "計畫主持人過去畢業的學校": find_crawler_person_relative_school(value_of_key("申請主持人欄位名稱"), crawler_RDF_data),
                         "共同主持人過去畢業的學校": list(chain.from_iterable(chain.from_iterable(project_manager_school))),
@@ -401,10 +402,16 @@ def excel_process_VBA():
 
     # 檢查 AB, 滿足條件改色
     for row in committee_sheet.iter_rows(min_row=2, max_col=committee_sheet.max_column):
-        filter_list = ast.literal_eval(row[27].value)
+        out_count = len(value_of_key("計畫相關其他欄位"))
+        filter_list = ast.literal_eval(row[26 + out_count].value)
         
         #- 若有重複的的部分進行圖色（篩選委員）
-        for col_index in [3, 5, 7, 9, 11, 13, 15, 17, 19, 21]:  # D, F, H, J, L, N, P, R, T, V 列的 Index
+        start_index = 2
+        gap = 2
+        range_count = 10
+        timeline = [i for i in range(start_index, start_index + (gap & range_count), gap)] # 10 個
+        timeline = [x + out_count for x in timeline]
+        for col_index in timeline:  # D, F, H, J, L, N, P, R, T, V 列的 Index
             if row[col_index].value in filter_list:
                 row[col_index].fill = pink_fill
     # 保存

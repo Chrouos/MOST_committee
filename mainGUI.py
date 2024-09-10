@@ -40,7 +40,7 @@ def create_gui():
     label.pack(pady=20)
 
     # 按鈕 - 存入資料庫
-    button_db = tk.Button(window, text="存入資料庫", command=lambda: execute_mode('存入資料庫', current_plan))
+    button_db = tk.Button(window, text="存入資料庫(請確保記憶體足夠)", command=lambda: execute_mode('存入資料庫', current_plan))
     button_db.pack(pady=10)
 
     # 按鈕 - 輸出推薦委員
