@@ -149,7 +149,7 @@ def search_v3(is_industry=False):
                 keywords = df.iloc[i][chinese_keyword_field_name]
                 
                 # 找尋相似度
-                current_text_combine = project_name + ' ' + keywords
+                current_text_combine = str(project_name) + ' ' + str(keywords)
                 documents = vectorstore.similarity_search_with_relevance_scores(current_text_combine, k=RECOMMAND_AMOUNT)
         
                 for j, (doc, score) in enumerate(documents):
