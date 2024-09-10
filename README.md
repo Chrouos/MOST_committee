@@ -3,6 +3,8 @@
 2. run crawler.pt to spider the data.
 3. run main.py to committee
 
+https://docs.google.com/presentation/d/1CEhxtZ017oe7CfgC6S8-L7yWSMi0eQIIFs5ens1QY4I/edit?usp=sharing 
+
 ## Strategy 
 
 過濾審查委員的策略，將下列重疊部分則一律篩選：
