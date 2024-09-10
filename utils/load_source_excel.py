@@ -41,6 +41,7 @@ def get_project_df() -> List[pd.DataFrame]:
 def get_industry_coop_proj():
     # 產學計劃
     industry_folder_path = find_key_path("產學過去申請名冊")
+    print("industry_folder_path", industry_folder_path)
     xls = pd.ExcelFile(industry_folder_path)
     
     year = ['專題計畫綜合查詢']

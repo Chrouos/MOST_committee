@@ -60,3 +60,8 @@ def print_setting_data():
     # 使用遞迴函數打印 settings 字典
     print_dict(setting_data)
     print("^ ================================ DATA SETTING ================================")
+    
+    
+    
+if __name__ == '__main__':
+    print_setting_data()
