@@ -89,6 +89,7 @@ def search_v3(is_industry=False):
     tabs = value_of_key("計畫SHEET")
     project_name_field_name = value_of_key("計畫名稱")
     chinese_keyword_field_name = value_of_key("中文關鍵字")
+    abstract_field_name = value_of_key("計劃摘要")
 
     # 取得輸出 Excel 檔案的資料夾路徑
     output_excel_folder_path = find_key_path("統計表分析")
@@ -145,11 +146,12 @@ def search_v3(is_industry=False):
             # process data
             for i in tqdm.tqdm(range(len(df)), desc=tab):
                 manager_list = []
-                project_name = df.iloc[i][project_name_field_name]
-                keywords = df.iloc[i][chinese_keyword_field_name]
+                project_name = df.iloc[i].get(project_name_field_name, '')
+                keywords = df.iloc[i].get(chinese_keyword_field_name, '')
+                abstract = df.iloc[i].get(abstract_field_name, '')
                 
                 # 找尋相似度
-                current_text_combine = str(project_name) + ' ' + str(keywords)
+                current_text_combine = str(project_name) + ' ' + str(keywords) + ' ' + str(abstract)
                 documents = vectorstore.similarity_search_with_relevance_scores(current_text_combine, k=RECOMMAND_AMOUNT)
         
                 for j, (doc, score) in enumerate(documents):

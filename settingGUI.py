@@ -175,42 +175,42 @@ def confirm_and_update_project_name_column(file_path, sheet_name, setting_data):
     selected_other_related_columns = []
 
     # 顯示計畫名稱選擇的 GUI
-    project_name_label = Label(root, text="請選擇屬於計畫名稱的欄位(必):")
+    project_name_label = Label(root, text="請選擇屬於計畫名稱的欄位:")
     project_name_label.pack(pady=5)
 
-    project_name_combobox = Combobox(root, textvariable=selected_project_name_column, values=columns, state="readonly")
+    project_name_combobox = Combobox(root, textvariable=selected_project_name_column, values=[""] + columns, state="readonly")
     project_name_combobox.pack(pady=5)
 
     # 顯示中文關鍵字選擇的 GUI
-    keyword_label = Label(root, text="請選擇屬於中文關鍵字的欄位(必):")
+    keyword_label = Label(root, text="請選擇屬於中文關鍵字的欄位:")
     keyword_label.pack(pady=5)
 
-    keyword_combobox = Combobox(root, textvariable=selected_keyword_column, values=columns, state="readonly")
+    keyword_combobox = Combobox(root, textvariable=selected_keyword_column, values=[""] + columns, state="readonly")
     keyword_combobox.pack(pady=5)
     
     # 顯示中文關鍵字選擇的 GUI
-    abstract_label = Label(root, text="請選擇屬於計劃摘要的欄位(必):")
+    abstract_label = Label(root, text="請選擇屬於計劃摘要的欄位:")
     abstract_label.pack(pady=5)
 
-    abstract_combobox = Combobox(root, textvariable=selected_abstract_column, values=columns, state="readonly")
+    abstract_combobox = Combobox(root, textvariable=selected_abstract_column, values=[""] + columns, state="readonly")
     abstract_combobox.pack(pady=5)
 
     # 顯示申請機構選擇的 GUI
-    institution_label = Label(root, text="請選擇屬於申請機構(學校)的欄位 (可為空):")
+    institution_label = Label(root, text="請選擇屬於申請機構(學校)的欄位:")
     institution_label.pack(pady=5)
 
     institution_combobox = Combobox(root, textvariable=selected_institution_column, values=[""] + columns, state="readonly")
     institution_combobox.pack(pady=5)
 
     # 顯示主持人選擇的 GUI
-    lead_researcher_label = Label(root, text="請選擇屬於(計畫)主持人的欄位 (可為空):")
+    lead_researcher_label = Label(root, text="請選擇屬於(計畫)主持人的欄位:")
     lead_researcher_label.pack(pady=5)
 
     lead_researcher_combobox = Combobox(root, textvariable=selected_lead_researcher_column, values=[""] + columns, state="readonly")
     lead_researcher_combobox.pack(pady=5)
 
     # 顯示計畫相關其他欄位的多選 GUI
-    other_related_fields_label = Label(root, text="請選擇計畫相關其他欄位 (可複選，可為空):")
+    other_related_fields_label = Label(root, text="請選擇計畫相關其他欄位 (可複選):")
     other_related_fields_label.pack(pady=5)
 
     other_related_fields_listbox = Listbox(root, selectmode=MULTIPLE, height=5, exportselection=False)
@@ -219,7 +219,7 @@ def confirm_and_update_project_name_column(file_path, sheet_name, setting_data):
     other_related_fields_listbox.pack(pady=5)
 
     # 顯示共同主持人選擇的 GUI
-    co_lead_researchers_label = Label(root, text="請選擇共同(計畫)主持人的欄位 (可複選，可為空):")
+    co_lead_researchers_label = Label(root, text="請選擇共同(計畫)主持人的欄位 (可複選):")
     co_lead_researchers_label.pack(pady=5)
 
     co_lead_researchers_listbox = Listbox(root, selectmode=MULTIPLE, height=5, exportselection=False)
@@ -228,7 +228,7 @@ def confirm_and_update_project_name_column(file_path, sheet_name, setting_data):
     co_lead_researchers_listbox.pack(pady=5)
 
     # 顯示共同機構選擇的 GUI
-    co_institutions_label = Label(root, text="請選擇共同機構(學校)的欄位 (可複選，可為空):")
+    co_institutions_label = Label(root, text="請選擇共同機構(學校)的欄位 (可複選):")
     co_institutions_label.pack(pady=5)
 
     co_institutions_listbox = Listbox(root, selectmode=MULTIPLE, height=5, exportselection=False)
@@ -241,10 +241,6 @@ def confirm_and_update_project_name_column(file_path, sheet_name, setting_data):
         project_name_column = selected_project_name_column.get()
         keyword_column = selected_keyword_column.get()
         abstract_column = selected_abstract_column.get()
-
-        if not project_name_column or not keyword_column or not abstract_column:
-            messagebox.showerror("錯誤", "計畫名稱和中文關鍵字欄位不可為空，請選擇合適的欄位。")
-            return
 
         # 單選的欄位
         institution_column = selected_institution_column.get()
