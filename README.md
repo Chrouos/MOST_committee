@@ -22,7 +22,7 @@
 
 # 使用
 安裝 GIT: https://git-scm.com/downloads
-`git clone https://github.com/Chrouos/MOST_committee.git`
+
 
 1. 安裝環境
 2. 執行程式碼
