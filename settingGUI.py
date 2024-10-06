@@ -161,9 +161,9 @@ def confirm_and_update_project_name_column(file_path, sheet_name, setting_data):
     current_keyword_column = setting_data['SOURCE']['field'].get('中文關鍵字', '')
     current_abstract_column = setting_data['SOURCE']['field'].get('計劃摘要', '')
 
-    selected_project_name_column.set(current_project_name_column if current_project_name_column in columns else columns[0])
-    selected_keyword_column.set(current_keyword_column if current_keyword_column in columns else columns[0])
-    selected_abstract_column.set(current_abstract_column if current_abstract_column in columns else columns[0])
+    selected_project_name_column.set(current_project_name_column if current_project_name_column in columns else "")
+    selected_keyword_column.set(current_keyword_column if current_keyword_column in columns else "")
+    selected_abstract_column.set(current_abstract_column if current_abstract_column in columns else "")
     
     # 其他欄位可以為空，初始為空
     selected_institution_column.set("")
