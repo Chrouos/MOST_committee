@@ -31,7 +31,7 @@
 ::
 ::
 ::978f952a14a936cc963da21a135fa983
-﻿@echo off
+?@echo off
 REM Windows Batch Script to run mainGUI.py using the specified Python interpreter in PowerShell
-powershell -Command "& '.\evnironment_python\python.exe' '.\settingGUI.py'"
+powershell -Command "& '.\environment_python\python.exe' '.\settingGUI.py'"
 pause

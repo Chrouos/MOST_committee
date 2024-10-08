@@ -32,15 +32,15 @@
 ::
 ::978f952a14a936cc963da21a135fa983
 ï»¿@echo off
-REM æª¢æŸ¥?¯å¦å®‰è? git
+REM æª¢ï¿½???ï¿½ï¿½?ï¿½ï¿½???? git
 git --version >nul 2>&1
 IF %ERRORLEVEL% NEQ 0 (
-    echo Git ?ªå?è£ï?è«‹å?å®‰è? Git??
+    echo Git ?ï¿½ï¿½?ï¿½???ï¿½???ï¿½??? Git??
     pause
     exit /b 1
 )
 
-REM ?²è? git pull ?ä?
+REM ?ï¿½ï¿½? git pull ????
 powershell -Command "& 'git' 'pull'"
 
 pause
