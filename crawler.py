@@ -12,6 +12,7 @@ COOKIE = "oMevOx" # = 預設 cookie
 
 FILE_PATH = find_key_path("查找碩博士名單")
 OUTPUT_FILE = find_key_path("碩博士論文")
+OUTPUT_FILE_RDF = find_key_path("碩博士論文_RDF")
 
 # = 預設 Excel 呈現樣式
 clear_excel_dict_template = {   
@@ -27,11 +28,11 @@ clear_excel_dict_template = {
     "博士論文題目": ""
 } 
 
-def save_to_excel(excel_df):
+def save_to_excel(excel_df, output_path):
     """
     將 DataFrame 儲存為 Excel 檔案。
     """
-    excel_df.to_excel(OUTPUT_FILE, index=False, engine='openpyxl', sheet_name="研究人才")
+    excel_df.to_excel(output_path, index=False, engine='openpyxl', sheet_name="研究人才")
     
 def crawl_thesis_info(row_data):
     """
@@ -126,19 +127,60 @@ def crawl_thesis_info(row_data):
             error += 1
             
     return temp_dict
+
+def to_RDF(df):
+    result_rdf_df = pd.DataFrame()
     
+    for index, row in df.iterrows():
+        
+        # 檢查碩士資料是否不為空或NaN
+        if pd.notnull(row["碩士畢業學年度"]) or pd.notnull(row["碩士畢業學校"]) or pd.notnull(row["碩士論文題目"]):
+            current_dict = {
+                "學生姓名": row["計畫主持人"],
+                "畢業學年度": int(row[f"碩士畢業學年度"]),
+                "畢業學校": row["碩士畢業學校"],
+                "論文題目": row["碩士論文題目"],
+                "學籍": "碩士",
+                "計畫發表學校": row["學校"]
+            }
+            result_rdf_df = pd.concat([result_rdf_df, pd.DataFrame([current_dict])], ignore_index=True)
+        
+        # 處理博士資料
+        for PHD_count in range(int(row["查獲博士人數"])):
+            
+            endWith = f"_{PHD_count}" if PHD_count > 1 else ""
+            
+            current_dict = {
+                "學生姓名": row["計畫主持人"],
+                "畢業學年度": int(row[f"博士畢業學年度{endWith}"]),
+                "畢業學校": row[f"博士畢業學校{endWith}"],
+                "論文題目": row[f"博士論文題目{endWith}"],
+                "學籍": "博士",
+                "計畫發表學校": row["學校"]
+            }
+            result_rdf_df = pd.concat([result_rdf_df, pd.DataFrame([current_dict])], ignore_index=True)
+
+
+    # 處理重複
+    columns_to_check = ["學生姓名", "畢業學年度", "畢業學校", "論文題目", "學籍"]
+    result_rdf_df = result_rdf_df.drop_duplicates(subset=columns_to_check, keep="first")
+    return result_rdf_df
+
 def main():
     columns = list(clear_excel_dict_template.keys())
     excel_data = pd.read_excel(FILE_PATH, sheet_name="研究人才") # = 讀取的 Excel Data
-    excel_df = pd.DataFrame(columns=columns) # = 要存檔的 Excel Data
+    result_crawler_df = pd.DataFrame(columns=columns) # = 要存檔的 Excel Data
     
+    # - 爬蟲
     for index, row in excel_data.iterrows():
         temp_dict = crawl_thesis_info(row) # = 爬蟲 Action
         temp_df = pd.DataFrame([temp_dict])
-        excel_df = pd.concat([excel_df, temp_df], ignore_index=True)
-        
+        result_crawler_df = pd.concat([result_crawler_df, temp_df], ignore_index=True)
+    save_to_excel(result_crawler_df, OUTPUT_FILE)
     
-    save_to_excel(excel_df)
-
+    # - 轉換 RDF
+    result_red_df = to_RDF(result_crawler_df)
+    save_to_excel(result_red_df, OUTPUT_FILE_RDF)
+    
 if __name__ == "__main__":
     main()
