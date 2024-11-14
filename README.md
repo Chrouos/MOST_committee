@@ -70,3 +70,30 @@ python crawler.py
 ```
 git pull
 ```
+
+小筆記：：
+
+啟動虛擬環境：
+
+Windows：
+windowsenv\Scripts\activate
+
+macOS/Linux：
+source macenv/bin/activate
+
+更新requirement.txt
+pip install -r requirement.txt
+
+問題1:
+根據錯誤訊息，你在安裝 chroma-hnswlib 時遇到以下問題：
+error: Microsoft Visual C++ 14.0 or greater is required. Get it with "Microsoft C++ Build Tools": 
+
+解決：要裝
+https://visualstudio.microsoft.com/visual-cpp-build-tools/
+=> 勾選 Desktop development with C++
+
+問題2:
+根據錯誤訊息，問題出在 uvloop 這個套件不支援 Windows，因此在安裝過程中遇到了錯誤：
+RuntimeError: uvloop does not support Windows at the moment
+
+解決：uvloop==0.20.0; sys_platform != 'win32' (略過)

@@ -1,1 +1,0 @@
-﻿./MOST/python ./mainGUI.py
