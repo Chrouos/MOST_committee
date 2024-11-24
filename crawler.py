@@ -10,6 +10,7 @@ from utils.get_setting import find_key_path
 URL = 'https://ndltd.ncl.edu.tw/' # = 碩博士論文網
 COOKIE = "oMevOx" # = 預設 cookie
 
+
 FILE_PATH = find_key_path("查找碩博士名單")
 OUTPUT_FILE = find_key_path("碩博士論文")
 OUTPUT_FILE_RDF = find_key_path("碩博士論文_RDF")
