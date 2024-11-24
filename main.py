@@ -1,6 +1,8 @@
 import argparse
 from utils.get_setting import value_of_key
 from utils.script import load_into_chroma_bge_manager, search_v3, filter_committee, excel_process_VBA, statistic_committee
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning, module="onnxruntime")
 
 def main():
     
