@@ -2,8 +2,8 @@
 REM Activate the virtual environment in the current directory
 call windowsenv\Scripts\activate
 
-REM Execute the settingGUI.py script in the current directory, passing the current directory as the repository path
-python settingGUI.py .
+REM 絕對指定虛擬環境內的 Python
+windowsenv\Scripts\python.exe settingGUI.py .
 
-REM Pause to keep the console open and display the result
+REM 保持控制台開啟以查看執行結果
 pause
