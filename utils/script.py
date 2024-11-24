@@ -323,7 +323,7 @@ def filter_committee(is_industry=False):
             for sheet in apply_list_file.sheet_names: 
                 current_sheet_apply_excel_data = pd.read_excel(apply_list_file, sheet_name=sheet)
                 find_temp_df = current_sheet_apply_excel_data[
-                    current_sheet_apply_excel_data["計畫名稱"] == statistical_row["計畫名稱"]
+                    current_sheet_apply_excel_data[value_of_key("計畫名稱")] == statistical_row[value_of_key("計畫名稱")]
                 ]
                 
                 for index, row in find_temp_df.iterrows(): 
