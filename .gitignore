@@ -1,8 +1,5 @@
 data
 chroma-viewer
-macenv
-windowsenv
 
 __pycache__
 .DS_Store
-environment_python/

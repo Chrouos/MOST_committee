@@ -7,6 +7,9 @@ import pandas as pd
 import numpy as np
 import ast
 import sys
+import os
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
 
 import openpyxl
 from openpyxl.styles import PatternFill
@@ -22,14 +25,14 @@ from utils.filter_method import *
 class MissingFieldsException(Exception):
     pass
 
-
 def load_into_chroma_bge_manager(is_industry=False):
     # Determine the Chroma database path based on the industry flag
     chroma_db_key = 'CHROMA_INDUSTRY' if is_industry else 'CHROMA'
     chroma_db_path = find_key_path(chroma_db_key)
     client = chromadb.PersistentClient(path=chroma_db_path)
     collection_name = chroma_db_key
-    collection = client.get_or_create_collection(collection_name)
+    client.delete_collection(collection_name)
+    collection = client.create_collection(collection_name)
 
     # Retrieve the relevant dataframes based on the industry flag
     df_list = get_industry_coop_proj() if is_industry else get_project_df()
@@ -39,8 +42,7 @@ def load_into_chroma_bge_manager(is_industry=False):
         for i in tqdm.tqdm(range(len(year_data)), desc=key):
             manager = year_data.iloc[i]['計畫主持人']
             project_name = year_data.iloc[i]['計畫中文名稱']
-            abstract_key = year_data.iloc[i]['計劃摘要']
-            abstract = year_data.iloc[i][abstract_key]
+            abstract = year_data.iloc[i]['中文摘要']
             keywords = year_data.iloc[i]['中文關鍵字']
             
             # Skip projects that are not approved when not dealing with industry data

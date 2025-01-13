@@ -17,12 +17,12 @@ def get_project_df() -> List[pd.DataFrame]:
         
         # - Load the Apply_Project file.
         apply_project_df = pd.read_excel(apply_project_excel_file, year)
-        apply_project_df.columns = apply_project_df.iloc[0]
-        apply_project_df = apply_project_df.iloc[1:]
+        # apply_project_df.columns = apply_project_df.iloc[0]
         
         # - Load the 
         statistic_excel_file = pd.ExcelFile(statistic_folder_path)
         statistic_df = pd.read_excel(statistic_excel_file, f"{year}總計畫清單")
+        
         pass_proj_name_list = statistic_df['計畫中文名稱'].to_list()
         
         # - Combine the Apply_Project and Admission_List(Statistic)
