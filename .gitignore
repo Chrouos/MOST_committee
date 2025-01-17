@@ -3,3 +3,6 @@ chroma-viewer
 
 __pycache__
 .DS_Store
+
+DLLs/*
+Lib/*

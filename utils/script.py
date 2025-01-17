@@ -31,6 +31,7 @@ def load_into_chroma_bge_manager(is_industry=False):
     chroma_db_path = find_key_path(chroma_db_key)
     client = chromadb.PersistentClient(path=chroma_db_path)
     collection_name = chroma_db_key
+    
     client.delete_collection(collection_name)
     collection = client.create_collection(collection_name)
 
@@ -111,7 +112,6 @@ def search_v3(is_industry=False):
     # 要輸出的欄位
     other_fields = value_of_key("計畫相關其他欄位")
     filter_fields = other_fields.copy() if other_fields else []
-    filter_fields.extend([project_name_field_name, chinese_keyword_field_name])
 
 
     RECOMMAND_AMOUNT = 10   # 要推薦的委員數量
@@ -374,12 +374,27 @@ def load_data(file_path):
     worksheet = workbook.active
     return workbook, worksheet
 
-def add_comments(target_ws, data_ws):
+def generate_letters_excel(start_index, gap, count):
+    def index_to_excel_column(index):
+        column = ""
+        while index > 0:
+            index -= 1  # 將索引調整為 0 基礎
+            column = chr(index % 26 + 65) + column
+            index //= 26
+        return column
+
+    letters = []
+    for i in range(count):
+        letter_index = start_index + i * gap
+        letters.append(index_to_excel_column(letter_index))
+    return letters
+
+def add_comments(target_ws, data_ws, columns_to_comment):
     """
         在目標工作表上添加註釋
     """
     
-    columns_to_comment = ['D', 'F', 'H', 'J', 'L', 'N', 'P', 'R', 'T', 'V']  # 需要添加註釋的欄位
+    # columns_to_comment = ['D', 'F', 'H', 'J', 'L', 'N', 'P', 'R', 'T', 'V']  # 需要添加註釋的欄位
 
     # 建立名稱與詳細資訊的對應字典
     name_to_details = {data_ws.cell(row=i, column=1).value: f"名稱: {data_ws.cell(row=i, column=1).value}\n年份: {data_ws.cell(row=i, column=2).value}\n機關: {data_ws.cell(row=i, column=3).value}" for i in range(2, data_ws.max_row + 1)}
@@ -395,28 +410,32 @@ def add_comments(target_ws, data_ws):
                 cell.comment = comment
                 
 def excel_process_VBA():
+    from openpyxl.utils.cell import column_index_from_string
     
     #: load the excel data.
     talent_workbook, talent_sheet = load_data(find_key_path("統計清單人才資料_RDF"))
     committee_workbook, committee_sheet = load_data(find_key_path("過濾相近後統計表"))
+    out_count = len(value_of_key("計畫相關其他欄位"))
     
-    add_comments(committee_sheet, talent_sheet)
-
+    start_index = out_count + 1 
+    gap = 2
+    range_count = 10
+    letter_index = generate_letters_excel(start_index, gap, range_count) # start_index = Excel 26 進制的索引
+    
+    # timeline = [start_index + i * gap for i in range(range_count)]  
+    
+    add_comments(committee_sheet, talent_sheet, columns_to_comment=letter_index)
     pink_fill = PatternFill(start_color='FFC0CB', end_color='FFC0CB', fill_type='solid') #= 填色
 
     # 檢查 AB, 滿足條件改色
     for row in committee_sheet.iter_rows(min_row=2, max_col=committee_sheet.max_column):
-        out_count = len(value_of_key("計畫相關其他欄位"))
-        filter_list = ast.literal_eval(row[26 + out_count].value)
+        filter_list = ast.literal_eval(row[-2].value)
         
         #- 若有重複的的部分進行圖色（篩選委員）
-        start_index = 2
-        gap = 2
-        range_count = 10
-        timeline = [i for i in range(start_index, start_index + (gap & range_count), gap)] # 10 個
-        timeline = [x + out_count for x in timeline]
-        for col_index in timeline:  # D, F, H, J, L, N, P, R, T, V 列的 Index
+        for col_letter in letter_index:
+            col_index = column_index_from_string(col_letter) - 1
             if row[col_index].value in filter_list:
                 row[col_index].fill = pink_fill
+
     # 保存
     committee_workbook.save(find_key_path("FINAL_COMMITTEE"))
