@@ -73,6 +73,9 @@ def select_the_file_update_project_name(setting_data):
                     setting_data['SOURCE']['data']['research_proj']['研究計畫申請名冊'] = file_name
                 elif current_aim == '產學合作':
                     setting_data['SOURCE']['data']['industry_coop']['產學合作申請名冊'] = file_name
+                    
+                file_name_only = os.path.splitext(file_name)[0]
+                setting_data['OUTPUT']['data']['output']['FINAL_COMMITTEE'] = file_name_only + "_推薦表統合_VBA.xlsx"
                 messagebox.showinfo("成功", f"已更新檔案名稱為: {file_name}")
                 file_window.destroy()  # 正確關閉視窗
                 root.destroy()  # 關閉主視窗

@@ -97,3 +97,22 @@ https://visualstudio.microsoft.com/visual-cpp-build-tools/
 RuntimeError: uvloop does not support Windows at the moment
 
 解決：uvloop==0.20.0; sys_platform != 'win32' (略過)
+
+
+## MAC tk 若沒有正確引入
+
+如果遇到問題：
+> DEPRECATION WARNING: The system version of Tk is deprecated and may be removed in a future release. Please don't rely on it. Set TK_SILENCE_DEPRECATION=1 to suppress this warning.
+> 2025-02-04 10:00:33.574 python3[5875:83556] +[IMKClient subclass]: chose IMKClient_Legacy
+> 2025-02-04 10:00:33.574 python3[5875:83556] +[IMKInputSession subclass]: chose IMKInputSession_Legacy
+
+```
+brew reinstall tcl-tk
+
+export PATH="/opt/homebrew/opt/tcl-tk/bin:$PATH"
+export LDFLAGS="-L/opt/homebrew/opt/tcl-tk/lib"
+export CPPFLAGS="-I/opt/homebrew/opt/tcl-tk/include"
+export PKG_CONFIG_PATH="/opt/homebrew/opt/tcl-tk/lib/pkgconfig"
+
+source ~/.zshrc
+```
