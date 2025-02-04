@@ -289,6 +289,7 @@ def filter_committee(is_industry=False):
     for sheet in statistical_analysis_file.sheet_names:
         current_sheet_statistical_excel_data = pd.read_excel(statistical_analysis_file, sheet_name=sheet)
         result_dict = []
+        all_apply_members = current_sheet_statistical_excel_data[value_of_key("申請主持人欄位名稱")].to_list() # 所有申請人
         
         for index, statistical_row in current_sheet_statistical_excel_data.iterrows():
         # ~ 每個統計表的 row.
@@ -347,7 +348,7 @@ def filter_committee(is_industry=False):
                     
                     #~ 審查委員不能與計劃申請學校(包含共同主持人)有關
                     filter_pairs = [("計畫申請學校", "委員曾就職學校"), ("共同計畫主持的學校", "委員曾就職學校")]
-                    current_committee_person_dict_result = filter_committee_advanced(apply_school, committee_person_dict, filter_pairs)
+                    current_committee_person_dict_result = filter_committee_advanced(apply_school, committee_person_dict, filter_pairs, all_apply_members)
                     total_committee_person_dict_result = merge_committee_advanced(total_committee_person_dict_result, current_committee_person_dict_result)
                     
                 if len(find_temp_df) > 0: break #= 找不到東西，跳掉

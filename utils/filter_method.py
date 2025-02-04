@@ -77,7 +77,7 @@ def filter_committee_person_by_school(apply_school, temp_list):
             
     return filter
 
-def filter_committee_advanced(schools_info, committee_members, filter_pairs):
+def filter_committee_advanced(schools_info, committee_members, filter_pairs, apply_member_list=None):
     """
     進階過濾委員名單，根據具體的配對關係進行過濾，並提供過濾的具體原因。
 
@@ -89,6 +89,12 @@ def filter_committee_advanced(schools_info, committee_members, filter_pairs):
     
     filtered_members = set()
     filter_reasons = {}
+    
+    if apply_member_list:
+        for member in committee_members:
+            if member['委員名稱'] in apply_member_list:
+                filtered_members.add(member['委員名稱'])
+                filter_reasons[member['委員名稱']] = f"委員名稱 {member['委員名稱']} 出現在申請人之中"
 
     # 根據配對條件進行過濾
     for school_type, member_field in filter_pairs:
