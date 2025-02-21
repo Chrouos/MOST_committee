@@ -1,9 +1,13 @@
 @echo off
 @chcp 65001 >nul
 
+
+REM 切換到批次檔所在目錄
+cd /d "%~dp0"
+
 REM 確保虛擬環境已存在
 if not exist "venv\Scripts\activate" (
-    echo [錯誤] 虛擬環境未創建，請先執行 setup_env.bat 來設置環境。
+    echo [錯誤] 虛擬環境未創建，請先執行 install_env.bat 來設置環境。
     pause
     exit /b 1
 )

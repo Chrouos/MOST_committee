@@ -3,6 +3,10 @@
 REM 設置虛擬環境名稱
 set VENV_NAME=venv
 
+
+REM 切換到批次檔所在目錄
+cd /d "%~dp0"
+
 REM 確保當前目錄有 python.exe
 if not exist "python.exe" (
     echo [錯誤] 找不到 python.exe，請確保此批次檔放置於正確目錄。
