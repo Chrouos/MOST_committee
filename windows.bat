@@ -1,7 +1,23 @@
 @echo off
+@chcp 65001 >nul
 
-REM Execute the mainGUI.py script in the current directory, passing the current directory as the repository path
-python.exe mainGUI.py .
 
-REM Pause to keep the console open and display the result
+REM 切換到批次檔所在目錄
+cd /d "%~dp0"
+
+REM 確保虛擬環境已存在
+if not exist "venv\Scripts\activate" (
+    echo [錯誤] 虛擬環境未創建，請先執行 install_env.bat 來設置環境。
+    pause
+    exit /b 1
+)
+
+REM 啟動虛擬環境
+call .\venv\Scripts\activate
+
+REM 顯式使用虛擬環境的 Python
+echo 正在執行 mainGUI.py 腳本...
+.\venv\Scripts\python.exe mainGUI.py .
+
+REM 保留控制台開啟，顯示執行結果
 pause
