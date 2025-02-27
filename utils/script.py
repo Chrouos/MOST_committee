@@ -26,6 +26,12 @@ class MissingFieldsException(Exception):
     pass
 
 def load_into_chroma_bge_manager(is_industry=False):
+    # Blacklist of fields to be removed
+    blacklist_csv_path = find_key_path("退休或黑名單委員")
+    blacklist_df = pd.read_csv(blacklist_csv_path, encoding='utf-8')
+    blacklist = blacklist_df['姓名'].tolist()
+    print(f"黑名單或是已退休委員:", blacklist)
+    
     # Determine the Chroma database path based on the industry flag
     chroma_db_key = 'CHROMA_INDUSTRY' if is_industry else 'CHROMA'
     chroma_db_path = find_key_path(chroma_db_key)
@@ -51,6 +57,10 @@ def load_into_chroma_bge_manager(is_industry=False):
             
             # Skip projects that are not approved when not dealing with industry data
             if not is_industry and approved != 'true':  
+                continue
+            
+            # Skip managers in the blacklist
+            if manager in blacklist:
                 continue
             
             # Concatenate the project information
@@ -267,6 +277,8 @@ def statistic_committee():
     
     #@ 處理委員的所有相關學校名單: 名稱 - 年份 - 學校 - 職稱
     committee_person_RDF = []
+    
+    #: 研究計劃
     for year in apply_project_file_year:
         current_sheet = f"{year}總計畫清單"
         statistic_df = pd.read_excel(statistic_excel_file, current_sheet)
@@ -278,13 +290,13 @@ def statistic_committee():
                 '職稱': row['職稱']
             })
             
+    #: 產學合作
     for index, row in industry_data.iterrows():
-
         committee_person_RDF.append({
-                '名稱': row['計畫主持人'],
-                '年份': row["計畫編號"][:3] if not pd.isna(row["計畫編號"]) else "",
-                '機關名稱': row['單位名稱'],
-                '職稱': ""
+            '名稱': row['計畫主持人'],
+            '年份': row["計畫編號"][:3] if not pd.isna(row["計畫編號"]) else "",
+            '機關名稱': row['單位名稱'],
+            '職稱': ""
         })
     
     committee_person_RDF_df = pd.DataFrame(committee_person_RDF)

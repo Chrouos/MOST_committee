@@ -120,3 +120,7 @@ export PKG_CONFIG_PATH="/opt/homebrew/opt/tcl-tk/lib/pkgconfig"
 
 source ~/.zshrc
 ```
+
+
+# TODO
++ [ ] 1.助理教授不能審教授或研究員，2.助研究員不能審教授或研究員。3.同校直接避開
