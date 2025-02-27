@@ -6,12 +6,16 @@
 + Documentation: [Slides](https://docs.google.com/presentation/d/1CEhxtZ017oe7CfgC6S8-L7yWSMi0eQIIFs5ens1QY4I/edit?usp=sharing)
 + `git clone https://github.com/Chrouos/MOST_committee.git`
 
+# Main
+
+相似度比對的模型：`https://huggingface.co/BAAI/bge-large-zh-v1.5`  
+
 ## Strategy 
 
 過濾審查委員的策略，將下列重疊部分則一律篩選：
 1. [計畫申請的學校, 共同主持計畫的學校, 計畫主持人過去的畢業學校, 共同主持人過去的畢業學校]
 2. [審查委員的學校, 審查委員過去的畢業學校（碩士+博士）]
-
+3. [審查委員, 計劃申請者]
 
 # Rulter
 + 「統計清單」中的 Sheet Name 的名稱固定是 「年分+總計畫清單」，例如: 112總計畫清單。

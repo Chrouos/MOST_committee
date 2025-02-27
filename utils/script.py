@@ -41,13 +41,16 @@ def load_into_chroma_bge_manager(is_industry=False):
     manager_group = {}
     for key, year_data in df_list.items():
         for i in tqdm.tqdm(range(len(year_data)), desc=key):
+            row = year_data.iloc[i]
+            
             manager = year_data.iloc[i]['計畫主持人']
-            project_name = year_data.iloc[i]['計畫中文名稱']
-            abstract = year_data.iloc[i]['中文摘要']
-            keywords = year_data.iloc[i]['中文關鍵字']
+            project_name = row.get('計畫中文名稱', '') or ''
+            abstract = row.get('中文摘要', '') or ''
+            keywords = row.get('中文關鍵字', '') or ''
+            approved = str(row.get('通過', 'false')).strip().lower()
             
             # Skip projects that are not approved when not dealing with industry data
-            if not is_industry and year_data.iloc[i]['通過'] != 'true':
+            if not is_industry and approved != 'true':  
                 continue
             
             # Concatenate the project information
@@ -55,7 +58,7 @@ def load_into_chroma_bge_manager(is_industry=False):
             
             # Group by manager, appending project information
             if manager in manager_group:
-                manager_group[manager] += text
+                manager_group[manager] += f"\n{text}"
             else:
                 manager_group[manager] = text
 
@@ -121,6 +124,10 @@ def search_v3(is_industry=False):
     xls = pd.ExcelFile(excel_folder_path)
     writer = pd.ExcelWriter(output_excel_folder_path, engine='openpyxl')
     
+    similarity_record_path = f"./data/output/similarity_record_{value_of_key('FINAL_COMMITTEE')}.xlsx"
+    os.makedirs(os.path.dirname(similarity_record_path), exist_ok=True)
+    similarity_df = pd.DataFrame(columns=["query_text", "compared_text", "recommended_manager", "model_name", "similarity_score"])
+    
     try:
         for tab in tabs:
             page_manager_list = []
@@ -153,9 +160,32 @@ def search_v3(is_industry=False):
                 abstract = df.iloc[i].get(abstract_field_name, '')
                 
                 # 找尋相似度
-                current_text_combine = str(project_name) + ' ' + str(keywords) + ' ' + str(abstract)
-                documents = vectorstore.similarity_search_with_relevance_scores(current_text_combine, k=RECOMMAND_AMOUNT)
+                current_text_combine = f"{project_name} {keywords} {abstract}"
+                documents = vectorstore.similarity_search_with_relevance_scores(
+                    current_text_combine,
+                    k=RECOMMAND_AMOUNT
+                )
+                
+                # 將搜尋結果寫入 CSV
+                for doc, score in documents:
+                    recommended_manager = doc.metadata['manager'] 
+                    compared_text = doc.page_content  # 可根據需求選擇不同內容
+                    model_name = "BGE_ZH"  # 依實際使用的模型名稱
+                    
+                    # 追加數據
+                    new_row = pd.DataFrame([{
+                        "query_text": current_text_combine,
+                        "compared_text": compared_text,
+                        "recommended_manager": recommended_manager,
+                        "model_name": model_name,
+                        "similarity_score": score
+                    }])
+                    
+                    if not new_row.empty:
+                        similarity_df = pd.concat([similarity_df, new_row], ignore_index=True)
+
         
+                # 分數填入 Excel 的動作 (和原程式邏輯相同)
                 for j, (doc, score) in enumerate(documents):
                     df.loc[df.index[i], '推薦委員' + str(j + 1)] = doc.metadata['manager']
                     manager_list.append(doc.metadata['manager'])
@@ -187,7 +217,10 @@ def search_v3(is_industry=False):
         raise  # 重新引發異常以停止程式
 
     finally:
-        writer.close()  # 確保 ExcelWriter 正常關閉
+        # 確保 ExcelWriter 正常關閉
+        writer.close()  
+        with pd.ExcelWriter(similarity_record_path, engine='openpyxl') as similarity_writer:
+            similarity_df.to_excel(similarity_writer, sheet_name="Similarity Records", index=False)
             
             
 def draw_color_for_similarity_score(writer, tab, output_excel):

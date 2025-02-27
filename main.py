@@ -23,8 +23,8 @@ def main():
     elif args.choose_mode == '輸出推薦委員':
         search_v3(is_industry) 
         statistic_committee() #= output: 統計清單人才資料_RDF
-        filter_committee(is_industry) #= 篩選人員
-        excel_process_VBA()
+        # filter_committee(is_industry) #= 篩選人員
+        # excel_process_VBA()
 
 if __name__ == "__main__":
     
