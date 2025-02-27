@@ -130,163 +130,192 @@ def select_sheet_from_excel(file_path, setting_data):
     button.pack(pady=10)
 
     root.mainloop()
-    
+
 def confirm_and_update_project_name_column(file_path, sheet_name, setting_data):
     """
     確認 Excel Sheet 中的欄位，並讓使用者選擇計畫相關的欄位。
-    「計畫名稱」和「中文關鍵字」不能為空。
-    其他欄位（如計畫相關其他欄位、申請機構、主持人、共同主持人、共同機構）可以為空。
-    :param file_path: Excel 檔案的路徑
-    :param sheet_name: Excel 中選擇的 Sheet 名稱
-    :param setting_data: 讀取的設定資料字典
+    特別注意：此處強制「申請主持人欄位」為必填。
     """
-    root = Tk()
-    root.title("確認計畫相關欄位，如果必填沒有請去補齊!")
-    root.geometry("500x800")
+    import openpyxl
+    from tkinter import Tk, Label, Button, Listbox, MULTIPLE, messagebox, StringVar, END
+    from tkinter.ttk import Combobox, Scrollbar
+    from tkinter import Frame, Canvas, VERTICAL, BOTH, LEFT, RIGHT, Y
 
-    # 讀取指定 Sheet 的欄位
-    print(file_path, sheet_name)
-    workbook = load_workbook(file_path, read_only=True)
+    root = Tk()
+    root.title("確認計畫相關欄位 - 可捲動置中")
+    root.geometry("600x600")
+
+    workbook = openpyxl.load_workbook(file_path, read_only=True)
     sheet = workbook[sheet_name]
-    
-    # 確保從第一列取得欄位名稱
     columns = [cell for cell in next(sheet.iter_rows(max_row=1, values_only=True))]
 
-    # 設定選擇框的預設值
+    # ----- 建立主框架與 Canvas + Scrollbar -----
+    main_frame = Frame(root)
+    main_frame.pack(fill=BOTH, expand=1)
+
+    my_canvas = Canvas(main_frame)
+    my_canvas.pack(side=LEFT, fill=BOTH, expand=1)
+
+    my_scrollbar = Scrollbar(main_frame, orient=VERTICAL, command=my_canvas.yview)
+    my_scrollbar.pack(side=RIGHT, fill=Y)
+
+    my_canvas.configure(yscrollcommand=my_scrollbar.set)
+
+    # 建立一個實際裝表單內容的 Frame，先以 (0,0) anchor='nw' 方式放到 Canvas 裏
+    form_frame = Frame(my_canvas)
+    form_window = my_canvas.create_window((0, 0), window=form_frame, anchor="nw")
+
+    # 透過事件綁定，讓內容可隨視窗變動而捲動、置中
+    def on_configure(event):
+        my_canvas.configure(scrollregion=my_canvas.bbox("all"))
+        canvas_width = event.width
+        form_width = form_frame.winfo_reqwidth()
+        if form_width < canvas_width:
+            x_offset = (canvas_width - form_width) // 2
+        else:
+            x_offset = 0
+        my_canvas.coords(form_window, x_offset, 0)
+
+    my_canvas.bind("<Configure>", on_configure)
+
+    # ----- 以下放所有的表單元素到 form_frame 裏 -----
     selected_project_name_column = StringVar()
     selected_keyword_column = StringVar()
     selected_abstract_column = StringVar()
     selected_institution_column = StringVar()
     selected_lead_researcher_column = StringVar()
+    selected_personal_title_column = StringVar()
 
-    # 設定「計畫名稱」和「中文關鍵字」的初始值
+    # 讀取 setting 裡的舊值 (若有)
     current_project_name_column = setting_data['SOURCE']['field'].get('計畫名稱', '')
     current_keyword_column = setting_data['SOURCE']['field'].get('中文關鍵字', '')
     current_abstract_column = setting_data['SOURCE']['field'].get('計劃摘要', '')
+    current_personal_title_column = setting_data['SOURCE']['field'].get('職稱', '')
 
     selected_project_name_column.set(current_project_name_column if current_project_name_column in columns else "")
     selected_keyword_column.set(current_keyword_column if current_keyword_column in columns else "")
     selected_abstract_column.set(current_abstract_column if current_abstract_column in columns else "")
-    
-    # 其他欄位可以為空，初始為空
     selected_institution_column.set("")
     selected_lead_researcher_column.set("")
+    selected_personal_title_column.set(current_personal_title_column if current_personal_title_column in columns else "")
 
-    # 多選的欄位設置
-    selected_co_lead_researchers_columns = []
-    selected_co_institutions_columns = []
-    selected_other_related_columns = []
-
-    # 顯示計畫名稱選擇的 GUI
-    project_name_label = Label(root, text="請選擇屬於計畫名稱的欄位:")
-    project_name_label.pack(pady=5)
-
-    project_name_combobox = Combobox(root, textvariable=selected_project_name_column, values=[""] + columns, state="readonly")
+    # 計畫名稱
+    Label(form_frame, text="請選擇屬於計畫名稱的欄位:").pack(pady=5)
+    project_name_combobox = Combobox(form_frame, textvariable=selected_project_name_column, 
+                                     values=[""] + columns, state="readonly")
     project_name_combobox.pack(pady=5)
 
-    # 顯示中文關鍵字選擇的 GUI
-    keyword_label = Label(root, text="請選擇屬於中文關鍵字的欄位:")
-    keyword_label.pack(pady=5)
-
-    keyword_combobox = Combobox(root, textvariable=selected_keyword_column, values=[""] + columns, state="readonly")
+    # 中文關鍵字
+    Label(form_frame, text="請選擇屬於中文關鍵字的欄位:").pack(pady=5)
+    keyword_combobox = Combobox(form_frame, textvariable=selected_keyword_column, 
+                                values=[""] + columns, state="readonly")
     keyword_combobox.pack(pady=5)
     
-    # 顯示中文關鍵字選擇的 GUI
-    abstract_label = Label(root, text="請選擇屬於計劃摘要的欄位:")
-    abstract_label.pack(pady=5)
-
-    abstract_combobox = Combobox(root, textvariable=selected_abstract_column, values=[""] + columns, state="readonly")
+    # 計劃摘要
+    Label(form_frame, text="請選擇屬於計劃摘要的欄位:").pack(pady=5)
+    abstract_combobox = Combobox(form_frame, textvariable=selected_abstract_column, 
+                                 values=[""] + columns, state="readonly")
     abstract_combobox.pack(pady=5)
 
-    # 顯示申請機構選擇的 GUI
-    institution_label = Label(root, text="請選擇屬於申請機構(學校)的欄位:")
-    institution_label.pack(pady=5)
-
-    institution_combobox = Combobox(root, textvariable=selected_institution_column, values=[""] + columns, state="readonly")
+    # 申請機構
+    Label(form_frame, text="請選擇屬於申請機構(學校)的欄位:").pack(pady=5)
+    institution_combobox = Combobox(form_frame, textvariable=selected_institution_column, 
+                                    values=[""] + columns, state="readonly")
     institution_combobox.pack(pady=5)
 
-    # 顯示主持人選擇的 GUI
-    lead_researcher_label = Label(root, text="請選擇屬於(計畫)主持人的欄位:")
-    lead_researcher_label.pack(pady=5)
-
-    lead_researcher_combobox = Combobox(root, textvariable=selected_lead_researcher_column, values=[""] + columns, state="readonly")
+    # (計畫)主持人 => 必填
+    Label(form_frame, text="請選擇屬於(計畫)主持人的欄位(必填):").pack(pady=5)
+    lead_researcher_combobox = Combobox(form_frame, textvariable=selected_lead_researcher_column, 
+                                        values=[""] + columns, state="readonly")
     lead_researcher_combobox.pack(pady=5)
 
-    # 顯示計畫相關其他欄位的多選 GUI
-    other_related_fields_label = Label(root, text="請選擇計畫相關其他欄位 (可複選):")
-    other_related_fields_label.pack(pady=5)
+    # 職稱
+    Label(form_frame, text="請選擇屬於職稱的欄位:").pack(pady=5)
+    personal_title_combobox = Combobox(form_frame, textvariable=selected_personal_title_column, 
+                                       values=[""] + columns, state="readonly")
+    personal_title_combobox.pack(pady=5)
 
-    other_related_fields_listbox = Listbox(root, selectmode=MULTIPLE, height=5, exportselection=False)
+    # 計畫相關其他欄位（多選）
+    Label(form_frame, text="請選擇計畫相關其他欄位 (可複選):").pack(pady=5)
+    other_related_fields_listbox = Listbox(form_frame, selectmode=MULTIPLE, height=5, exportselection=False)
     for column in columns:
-        other_related_fields_listbox.insert('end', column)
+        other_related_fields_listbox.insert(END, column)
     other_related_fields_listbox.pack(pady=5)
 
-    # 顯示共同主持人選擇的 GUI
-    co_lead_researchers_label = Label(root, text="請選擇共同(計畫)主持人的欄位 (可複選):")
-    co_lead_researchers_label.pack(pady=5)
-
-    co_lead_researchers_listbox = Listbox(root, selectmode=MULTIPLE, height=5, exportselection=False)
+    # 共同主持人（多選）
+    Label(form_frame, text="請選擇共同(計畫)主持人的欄位 (可複選):").pack(pady=5)
+    co_lead_researchers_listbox = Listbox(form_frame, selectmode=MULTIPLE, height=5, exportselection=False)
     for column in columns:
-        co_lead_researchers_listbox.insert('end', column)
+        co_lead_researchers_listbox.insert(END, column)
     co_lead_researchers_listbox.pack(pady=5)
 
-    # 顯示共同機構選擇的 GUI
-    co_institutions_label = Label(root, text="請選擇共同機構(學校)的欄位 (可複選):")
-    co_institutions_label.pack(pady=5)
-
-    co_institutions_listbox = Listbox(root, selectmode=MULTIPLE, height=5, exportselection=False)
+    # 共同機構（多選）
+    Label(form_frame, text="請選擇共同機構(學校)的欄位 (可複選):").pack(pady=5)
+    co_institutions_listbox = Listbox(form_frame, selectmode=MULTIPLE, height=5, exportselection=False)
     for column in columns:
-        co_institutions_listbox.insert('end', column)
+        co_institutions_listbox.insert(END, column)
     co_institutions_listbox.pack(pady=5)
 
     def on_select():
-        # 確認「計畫名稱」和「中文關鍵字」是否選擇
+        # 讀取使用者選擇
         project_name_column = selected_project_name_column.get()
         keyword_column = selected_keyword_column.get()
         abstract_column = selected_abstract_column.get()
-
-        # 單選的欄位
-        institution_column = selected_institution_column.get()
+        inst_column = selected_institution_column.get()
         lead_researcher_column = selected_lead_researcher_column.get()
+        personal_title_col = selected_personal_title_column.get()
 
-        # 多選的欄位
-        selected_indices_other_related = other_related_fields_listbox.curselection()
-        selected_other_related = [columns[i] for i in selected_indices_other_related]
+        selected_indices_other = other_related_fields_listbox.curselection()
+        selected_other_related = [columns[i] for i in selected_indices_other]
 
-        selected_indices_co_lead_researchers = co_lead_researchers_listbox.curselection()
-        selected_co_lead_researchers = [columns[i] for i in selected_indices_co_lead_researchers]
+        selected_indices_co_lead = co_lead_researchers_listbox.curselection()
+        selected_co_lead_researchers = [columns[i] for i in selected_indices_co_lead]
 
-        selected_indices_co_institutions = co_institutions_listbox.curselection()
-        selected_co_institutions = [columns[i] for i in selected_indices_co_institutions]
+        selected_indices_co_inst = co_institutions_listbox.curselection()
+        selected_co_institutions = [columns[i] for i in selected_indices_co_inst]
 
-        # 更新設定資料
+        # -- 必填檢查: 申請主持人 --
+        if not lead_researcher_column:
+            messagebox.showerror("錯誤", "【申請主持人欄位】不得為空，請選擇一個欄位。")
+            return
+
+        # 其他邏輯可依需求做必填檢查，例如若需要「計畫名稱」「中文關鍵字」也必填：
+        # if not project_name_column:
+        #     messagebox.showerror("錯誤", "【計畫名稱欄位】不得為空，請選擇一個欄位。")
+        #     return
+
+        # if not keyword_column:
+        #     messagebox.showerror("錯誤", "【中文關鍵字欄位】不得為空，請選擇一個欄位。")
+        #     return
+
+        # 正常更新 setting
         setting_data['SOURCE']['field']['計畫名稱'] = project_name_column
         setting_data['SOURCE']['field']['中文關鍵字'] = keyword_column
         setting_data['SOURCE']['field']['計劃摘要'] = abstract_column
-        setting_data['SOURCE']['field']['申請機構欄位名稱'] = institution_column
+        setting_data['SOURCE']['field']['申請機構欄位名稱'] = inst_column
         setting_data['SOURCE']['field']['申請主持人欄位名稱'] = lead_researcher_column
+        setting_data['SOURCE']['field']['職稱'] = personal_title_col
         setting_data['SOURCE']['field']['計畫相關其他欄位'] = selected_other_related
         setting_data['SOURCE']['field']['申請共同主持人'] = selected_co_lead_researchers
         setting_data['SOURCE']['field']['申請共同機構欄位名稱'] = selected_co_institutions
 
         messagebox.showinfo(
             "成功",
-            f"計畫名稱欄位已設定為: {project_name_column}\n"
-            f"中文關鍵字欄位已設定為: {keyword_column}\n"
-            f"計劃摘要欄位已設定為: {abstract_column}\n"
-            f"申請機構欄位已設定為: {institution_column}\n"
-            f"申請主持人欄位已設定為: {lead_researcher_column}\n"
-            f"計畫相關其他欄位已設定為: {', '.join(selected_other_related) if selected_other_related else '無'}\n"
-            f"申請共同主持人已設定為: {', '.join(selected_co_lead_researchers) if selected_co_lead_researchers else '無'}\n"
-            f"申請共同機構已設定為: {', '.join(selected_co_institutions) if selected_co_institutions else '無'}"
+            f"計畫名稱: {project_name_column}\n"
+            f"中文關鍵字: {keyword_column}\n"
+            f"計劃摘要: {abstract_column}\n"
+            f"申請機構: {inst_column}\n"
+            f"主持人(必填): {lead_researcher_column}\n"
+            f"職稱: {personal_title_col}\n"
+            f"其他欄位: {', '.join(selected_other_related) if selected_other_related else '無'}\n"
+            f"共同主持人: {', '.join(selected_co_lead_researchers) if selected_co_lead_researchers else '無'}\n"
+            f"共同機構: {', '.join(selected_co_institutions) if selected_co_institutions else '無'}"
         )
         root.destroy()
 
-    button = Button(root, text="確認", command=on_select)
-    button.pack(pady=10)
-    
-    root.mainloop()
+    Button(form_frame, text="確認", command=on_select).pack(pady=10)
 
+    root.mainloop()
 
 try:
     with open(DEFAULT_SETTING_YAML, 'r', encoding='utf-8') as file:

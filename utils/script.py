@@ -124,8 +124,8 @@ def search_v3(is_industry=False):
     
     # 要輸出的欄位
     other_fields = value_of_key("計畫相關其他欄位")
-    filter_fields = other_fields.copy() if other_fields else []
-
+    required_fields = [project_name_field_name, chinese_keyword_field_name, abstract_field_name]
+    filter_fields = required_fields + [f for f in other_fields if f not in required_fields]
 
     RECOMMAND_AMOUNT = 10   # 要推薦的委員數量
     SELECT_AMOUNT = 3       # 要選擇的委員數量
@@ -191,7 +191,7 @@ def search_v3(is_industry=False):
                         "similarity_score": score
                     }])
                     
-                    if not new_row.empty:
+                    if not new_row.empty and not new_row.isna().all(axis=None):
                         similarity_df = pd.concat([similarity_df, new_row], ignore_index=True)
 
         
@@ -363,11 +363,17 @@ def filter_committee(is_industry=False):
                 })
                 
             # = 申請學校 + 主持人學校 + 共同主持人學校
+            '''
+            如果有重疊，就會被歸類到 Filtered Members 裏
+            反之則留在 Remaining Members
+            至於 Filter Reasons 則紀錄每個被篩掉委員的具體原因
+            '''
             total_committee_person_dict_result = {
                 'Filtered Members': [],
                 'Remaining Members': [],
                 'Filter Reasons': {}
             }
+            
             for sheet in apply_list_file.sheet_names: 
                 current_sheet_apply_excel_data = pd.read_excel(apply_list_file, sheet_name=sheet)
                 find_temp_df = current_sheet_apply_excel_data[
@@ -457,21 +463,25 @@ def add_comments(target_ws, data_ws, columns_to_comment):
                 
 def excel_process_VBA():
     from openpyxl.utils.cell import column_index_from_string
+    from openpyxl.utils import get_column_letter
+
+    gap = 2
+    range_count = 10
     
     #: load the excel data.
     talent_workbook, talent_sheet = load_data(find_key_path("統計清單人才資料_RDF"))
     committee_workbook, committee_sheet = load_data(find_key_path("過濾相近後統計表"))
-    out_count = len(value_of_key("計畫相關其他欄位"))
+    out_count = committee_sheet.max_column - ( range_count * gap ) - 6
     
     start_index = out_count + 1 
-    gap = 2
-    range_count = 10
     letter_index = generate_letters_excel(start_index, gap, range_count) # start_index = Excel 26 進制的索引
-    
     # timeline = [start_index + i * gap for i in range(range_count)]  
     
     add_comments(committee_sheet, talent_sheet, columns_to_comment=letter_index)
     pink_fill = PatternFill(start_color='FFC0CB', end_color='FFC0CB', fill_type='solid') #= 填色
+    
+    header_value = committee_sheet.cell(row=1, column=start_index).value
+    print("[起頭] 第 {} 欄之標題為：{}".format(start_index, header_value))
 
     # 檢查 AB, 滿足條件改色
     for row in committee_sheet.iter_rows(min_row=2, max_col=committee_sheet.max_column):
