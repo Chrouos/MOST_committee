@@ -77,34 +77,64 @@ def filter_committee_person_by_school(apply_school, temp_list):
             
     return filter
 
-def filter_committee_advanced(schools_info, committee_members, filter_pairs, apply_member_list=None):
+def filter_committee_advanced(
+        schools_info, 
+        committee_members, 
+        filter_pairs, 
+        apply_member_list=None, 
+        TITLE_RESTRICTIONS={},
+        whether_to_execute_the_option={
+            "是否過濾申請人": True,
+            "是否過濾相同學校": True,
+            "是否過濾職稱": True,
+        }
+    ):
     """
     進階過濾委員名單，根據具體的配對關係進行過濾，並提供過濾的具體原因。
 
     :param schools_info: 包含學校相關資訊的字典
     :param committee_members: 包含委員相關資訊的列表
     :param filter_pairs: 列表，包含過濾配對條件，例如 [("申請學校", "就職學校")]
+    :param apply_member_list: 申請人名單，若提供則優先過濾
+    :param TITLE_RESTRICTIONS: 職稱過濾規則的字典
+    
     :return: 一個字典，包含過濾前後的委員名單和未過濾的委員名單，以及過濾原因
     """
     
     filtered_members = set()
     filter_reasons = {}
     
-    if apply_member_list:
+    # 1. (若篩選委員有申請人，則刪除) => 如果有提供 apply_member_list，先將該列表中的委員優先篩選掉
+    if apply_member_list and whether_to_execute_the_option["是否過濾申請人"]:
         for member in committee_members:
             if member['委員名稱'] in apply_member_list:
                 filtered_members.add(member['委員名稱'])
                 filter_reasons[member['委員名稱']] = f"委員名稱 {member['委員名稱']} 出現在申請人之中"
 
-    # 根據配對條件進行過濾
-    for school_type, member_field in filter_pairs:
-        if school_type in schools_info and schools_info[school_type]:
-            school_list = schools_info[school_type] if isinstance(schools_info[school_type], list) else [schools_info[school_type]]
-            for member in committee_members:
-                matching_schools = [school for school in member[member_field] if school in school_list and school]
-                if matching_schools:
-                    filtered_members.add(member['委員名稱'])
-                    filter_reasons[member['委員名稱']] = f"{school_type} 與 {member_field} ({', '.join(matching_schools)}) 重疊"
+    #  2. 根據配對條件進行過濾（例如 (計畫申請學校, 委員曾就職學校) 等）
+    if whether_to_execute_the_option["是否過濾相同學校"]:
+        for school_type, member_field in filter_pairs:
+            if school_type in schools_info and schools_info[school_type]:
+                school_list = schools_info[school_type] if isinstance(schools_info[school_type], list) else [schools_info[school_type]]
+                for member in committee_members:
+                    matching_schools = [school for school in member[member_field] if school in school_list and school]
+                    if matching_schools:
+                        filtered_members.add(member['委員名稱'])
+                        filter_reasons[member['委員名稱']] = f"{school_type} 與 {member_field} ({', '.join(matching_schools)}) 重疊"
+
+    # 3. 根據職稱進行過濾
+    if whether_to_execute_the_option["是否過濾職稱"]:
+        for member in committee_members:
+            if member['委員名稱'] in filtered_members:
+                continue  # 若已被篩選，不再處理
+            
+            applicant_title = str(schools_info.get("申請人職稱", "")).strip()
+            member_title = str(member.get("職稱", "")).strip()
+
+            # 若該職稱有過濾規則，且申請人職稱在排除名單中
+            if member_title in TITLE_RESTRICTIONS and applicant_title in TITLE_RESTRICTIONS[member_title]:
+                filtered_members.add(member['委員名稱'])
+                filter_reasons[member['委員名稱']] = f"{member_title} 不能審查 {applicant_title}"
 
     # 創建過濾後的委員名單
     remaining_members = [member['委員名稱'] for member in committee_members if member['委員名稱'] not in filtered_members]
@@ -124,8 +154,8 @@ def merge_committee_advanced(result1, result2):
     :param result2: 第二個過濾結果字典
     :return: 合併後的過濾結果字典
     """
-    print(result1)
-    print(result2)
+    # print(result1)
+    # print(result2)
     
     # 合併 'Filtered Members'
     merged_filtered_members = list(set(result1['Filtered Members'] + result2['Filtered Members']))
@@ -141,3 +171,11 @@ def merge_committee_advanced(result1, result2):
         'Remaining Members': merged_remaining_members,
         'Filter Reasons': merged_filter_reasons
     }
+    
+def extract_max_year(year):
+    """將年份範圍轉換為最大值，例如 '113-114' -> 114"""
+    if isinstance(year, str):  # 確保是字串
+        match = re.findall(r'\d+', year)  # 擷取數字
+        if match:
+            return max(map(int, match))  # 取最大值（轉為 int）
+    return pd.to_numeric(year, errors='coerce')  # 轉換單一年份

@@ -1,7 +1,7 @@
 ﻿import tkinter as tk
 from tkinter import messagebox
 from utils.get_setting import value_of_key
-from utils.script import load_into_chroma_bge_manager, search_v3, filter_committee, excel_process_VBA, statistic_committee
+from utils.script import load_into_chroma_bge_manager, update_peronsal_info_database, search_v3, filter_committee, excel_process_VBA, statistic_committee
 from utils.get_setting import setting_data
 
 def execute_mode(mode, current_plan):
@@ -20,9 +20,10 @@ def execute_mode(mode, current_plan):
         load_into_chroma_bge_manager(is_industry)
         messagebox.showinfo("成功", "資料已成功存入資料庫")
     elif mode == '輸出推薦委員':
-        search_v3(is_industry)
-        statistic_committee()  # 統計清單人才資料_RDF
-        filter_committee(is_industry)  # 篩選人員
+        update_peronsal_info_database(is_industry)
+        statistic_committee() #= output: 統計清單人才資料_RDF
+        search_v3(is_industry) 
+        filter_committee(is_industry) #= 篩選人員
         excel_process_VBA()
         messagebox.showinfo("成功", "已成功輸出推薦委員")
 

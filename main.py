@@ -1,6 +1,6 @@
 import argparse
 from utils.get_setting import value_of_key
-from utils.script import load_into_chroma_bge_manager, search_v3, filter_committee, excel_process_VBA, statistic_committee
+from utils.script import load_into_chroma_bge_manager, search_v3, filter_committee, excel_process_VBA, statistic_committee, update_peronsal_info_database
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning, module="onnxruntime")
 
@@ -21,10 +21,14 @@ def main():
     if args.choose_mode == '存入資料庫':    
         load_into_chroma_bge_manager(is_industry)
     elif args.choose_mode == '輸出推薦委員':
-        # search_v3(is_industry) 
-        # statistic_committee() #= output: 統計清單人才資料_RDF
-        # filter_committee(is_industry) #= 篩選人員
+        update_peronsal_info_database(is_industry)
+        statistic_committee() #= output: 統計清單人才資料_RDF
+        search_v3(is_industry) 
+        filter_committee(is_industry) #= 篩選人員
         excel_process_VBA()
+        print("已成功輸出推薦委員")
+        
+    # 
 
 if __name__ == "__main__":
     

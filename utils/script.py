@@ -134,7 +134,7 @@ def search_v3(is_industry=False):
     xls = pd.ExcelFile(excel_folder_path)
     writer = pd.ExcelWriter(output_excel_folder_path, engine='openpyxl')
     
-    similarity_record_path = f"./data/output/similarity_record_{value_of_key('FINAL_COMMITTEE')}.xlsx"
+    similarity_record_path = f"./data/output/similarity_record_{value_of_key('FINAL_COMMITTEE')}"
     os.makedirs(os.path.dirname(similarity_record_path), exist_ok=True)
     similarity_df = pd.DataFrame(columns=["query_text", "compared_text", "recommended_manager", "model_name", "similarity_score"])
     
@@ -191,6 +191,7 @@ def search_v3(is_industry=False):
                         "similarity_score": score
                     }])
                     
+                    new_row = new_row.reindex(columns=similarity_df.columns)
                     if not new_row.empty and not new_row.isna().all(axis=None):
                         similarity_df = pd.concat([similarity_df, new_row], ignore_index=True)
 
@@ -275,10 +276,61 @@ def statistic_committee():
     industry_folder_path = find_key_path("產學過去申請名冊")
     industry_data = pd.read_excel(industry_folder_path)
     
+    past_apply_project_path = find_key_path("計畫過去申請案件")
+    past_apply_project_file = pd.ExcelFile(past_apply_project_path)
+    
+    newest_person_path = find_key_path("暫存最新人才資料庫")
+    newest_person_df = pd.read_excel(newest_person_path)
+    
+    # committee_study_folder_path = find_key_path("碩博士論文_RDF")
+    # committee_study_data = pd.read_excel(committee_study_folder_path)
+    
     #@ 處理委員的所有相關學校名單: 名稱 - 年份 - 學校 - 職稱
     committee_person_RDF = []
     
-    #: 研究計劃
+    # #: 碩博士論文
+    # for index, row in tqdm.tqdm(committee_study_data.iterrows(), desc="碩博士論文"):
+    #     # 先檢查欄位是否存在
+    #     name = row.get('學生姓名', '')
+    #     year = row.get('畢業學年度', '') if '畢業學年度' in row else ''
+    #     institution = row.get('畢業學校', '') if '畢業學校' in row else ''
+
+    #     # 確保數據不為 NaN（轉為字串或預設值）
+    #     year = str(year) if pd.notna(year) else ''
+    #     institution = str(institution) if pd.notna(institution) else ''
+
+    #     committee_person_RDF.append({
+    #         '名稱': name,
+    #         '年份': year,
+    #         '機關名稱': institution,
+    #         '職稱': ""
+    #     })
+    
+    #: 暫存最新人才資料庫
+    for index, row in newest_person_df.iterrows():
+        committee_person_RDF.append({
+            '名稱': row['名稱'],
+            '年份': int(row['年份']),
+            '機關名稱': row['機關名稱'],
+            '職稱': row['職稱'],
+            "來源": row['來源']
+        })
+
+    #: 研究計劃（申請案件）
+    for year in apply_project_file_year:
+        current_sheet = year
+        past_apply_project_df = pd.read_excel(past_apply_project_file, current_sheet)
+        for index, row in tqdm.tqdm(past_apply_project_df.iterrows(), desc=f"{current_sheet}"):
+            committee_person_RDF.append({
+                '名稱': row['計畫主持人'],
+                '年份': year,
+                '機關名稱': row['機關名稱'],
+                '職稱': row['職稱'],
+                "來源": f"研究計劃（申請案件）- {current_sheet}"
+            })
+        
+        
+    #: 研究計劃（統計案件）
     for year in apply_project_file_year:
         current_sheet = f"{year}總計畫清單"
         statistic_df = pd.read_excel(statistic_excel_file, current_sheet)
@@ -287,7 +339,8 @@ def statistic_committee():
                 '名稱': row['計畫主持人'],
                 '年份': year,
                 '機關名稱': row['機關名稱'],
-                '職稱': row['職稱']
+                '職稱': row['職稱'],
+                "來源": f"研究計劃（統計案件）- {current_sheet}"
             })
             
     #: 產學合作
@@ -296,7 +349,8 @@ def statistic_committee():
             '名稱': row['計畫主持人'],
             '年份': row["計畫編號"][:3] if not pd.isna(row["計畫編號"]) else "",
             '機關名稱': row['單位名稱'],
-            '職稱': ""
+            '職稱': row['職稱'],
+            "來源": f"產學合作 - 序號:{row['序號']}"
         })
     
     committee_person_RDF_df = pd.DataFrame(committee_person_RDF)
@@ -304,13 +358,18 @@ def statistic_committee():
     committee_person_RDF_df = committee_person_RDF_df.sort_values(by=["名稱"])
     committee_person_RDF_df.to_excel(find_key_path("統計清單人才資料_RDF"), index=False)
     
+    from utils.filter_method import extract_max_year
+    
+    committee_person_RDF_df['年份'] = committee_person_RDF_df['年份'].apply(extract_max_year)
+    committee_person_RDF_df['年份'] = committee_person_RDF_df['年份'].fillna(0) 
+    committee_person_RDF_df['年份'] = committee_person_RDF_df['年份'].astype(int)
+    
     unique_person_RDF_df = committee_person_RDF_df.loc[committee_person_RDF_df.groupby('名稱')['年份'].idxmax()]
     unique_person_RDF_df.to_excel(find_key_path("統計清單人才資料_RDF_UNI"), index=False)
 
 def filter_committee(is_industry=False):
     
     #: Load the data
-    
     crawler_RDF_folder_path = find_key_path("碩博士論文_RDF")
     crawler_RDF_data = pd.read_excel(crawler_RDF_folder_path)
     
@@ -324,7 +383,7 @@ def filter_committee(is_industry=False):
         
     apply_list_file = pd.ExcelFile(apply_list_folder_path)
     
-    committee_person_path = find_key_path("統計清單人才資料_RDF")
+    committee_person_path = find_key_path("統計清單人才資料_RDF_UNI")
     committee_person_RDF_df = pd.read_excel(committee_person_path)
     
     #- Strategy
@@ -349,17 +408,19 @@ def filter_committee(is_industry=False):
                 find_temp_df = committee_person_RDF_df[committee_person_RDF_df["名稱"] == statistical_row[f'推薦委員{index_of_committee}']]
                 for index, row in find_temp_df.iterrows(): 
                     been_list.append(row["學校"])
-                been_list = list(set(been_list))  
-                    
+                been_list = list(set(been_list)) 
+                
                 # 委員過去畢業的學校
                 graduate_list = []
                 relate_school = find_crawler_person_relative_school(f'推薦委員{index_of_committee}', crawler_RDF_data)
                 graduate_list.extend(list(set(relate_school)))
-                                
+                
+                # 委員職稱
                 committee_person_dict.append({
                     "委員名稱": statistical_row[f'推薦委員{index_of_committee}'],
                     "委員曾就職學校": been_list,
-                    "委員過去畢業學校": graduate_list
+                    "委員過去畢業學校": graduate_list,
+                    "職稱": find_temp_df['職稱']
                 })
                 
             # = 申請學校 + 主持人學校 + 共同主持人學校
@@ -391,16 +452,35 @@ def filter_committee(is_industry=False):
                     # 找到關聯性
                     project_manager_school = list([find_crawler_person_relative_school(name, crawler_RDF_data) for name, department in common_joint_list])
                     apply_school = {
+                        "申請人職稱": row.get(value_of_key("職稱"), ''),
                         "計畫申請學校": split_institution(row.get(value_of_key("申請機構欄位名稱"), ''))[0], 
                         "共同計畫主持的學校": [split_institution(department)[0] for name, department in common_joint_list],
                         "計畫主持人過去畢業的學校": find_crawler_person_relative_school(value_of_key("申請主持人欄位名稱"), crawler_RDF_data),
-                        "共同主持人過去畢業的學校": list(chain.from_iterable(chain.from_iterable(project_manager_school))),
+                        "共同主持人過去畢業的學校": list(chain.from_iterable(project_manager_school)), 
                     }
                     
                     #~ 審查委員不能與計劃申請學校(包含共同主持人)有關
+                    # print("apply_school\n", apply_school)
+                    # print("committee_person_dict\n", committee_person_dict)
                     filter_pairs = [("計畫申請學校", "委員曾就職學校"), ("共同計畫主持的學校", "委員曾就職學校")]
-                    current_committee_person_dict_result = filter_committee_advanced(apply_school, committee_person_dict, filter_pairs, all_apply_members)
+                    TITLE_RESTRICTIONS = {
+                        "助理教授": ["教授", "研究員"], # 助理教授不能審教授或研究員
+                        "助研究員": ["教授", "研究員"] # 助研究員不能審教授或研究員
+                    }
+                    current_committee_person_dict_result = filter_committee_advanced(
+                        apply_school, 
+                        committee_person_dict, 
+                        filter_pairs, 
+                        all_apply_members, 
+                        TITLE_RESTRICTIONS,
+                        whether_to_execute_the_option= {
+                            "是否過濾申請人": True if is_industry else False,
+                            "是否過濾相同學校": True,
+                            "是否過濾職稱": True,
+                        }
+                    )
                     total_committee_person_dict_result = merge_committee_advanced(total_committee_person_dict_result, current_committee_person_dict_result)
+                    
                     
                 if len(find_temp_df) > 0: break #= 找不到東西，跳掉
         
@@ -449,7 +529,21 @@ def add_comments(target_ws, data_ws, columns_to_comment):
     # columns_to_comment = ['D', 'F', 'H', 'J', 'L', 'N', 'P', 'R', 'T', 'V']  # 需要添加註釋的欄位
 
     # 建立名稱與詳細資訊的對應字典
-    name_to_details = {data_ws.cell(row=i, column=1).value: f"名稱: {data_ws.cell(row=i, column=1).value}\n年份: {data_ws.cell(row=i, column=2).value}\n機關: {data_ws.cell(row=i, column=3).value}" for i in range(2, data_ws.max_row + 1)}
+    # ['名稱', '年份', '機關名稱', '職稱', '來源', '學校', '系所']
+    name_to_details = {
+    data_ws.cell(row=i, column=1).value: \
+        f"名稱: {data_ws.cell(row=i, column=1).value}\n"
+        f"年份: {data_ws.cell(row=i, column=2).value}\n"
+        f"機關: {data_ws.cell(row=i, column=3).value}\n"
+        f"職稱: {data_ws.cell(row=i, column=4).value}\n"
+        # f"來源: {data_ws.cell(row=i, column=5).value}"
+        for i in range(2, data_ws.max_row + 1)
+    }
+    
+    headers = [cell.value for cell in data_ws[1]]  # 取得第一列的標題名稱
+    source_index = headers.index('來源') + 1  # Excel 的索引從 1 開始
+    print("來源欄位的索引位置:", source_index)
+    print("欄位名稱:", headers)
 
     # 在每個指定欄位添加註釋
     for col in columns_to_comment:
@@ -457,7 +551,7 @@ def add_comments(target_ws, data_ws, columns_to_comment):
             if cell.value in name_to_details:
                 comment_text = name_to_details[cell.value]
                 comment = openpyxl.comments.Comment(comment_text, "Python Script")
-                comment.width = 200  # 設置寬度
+                comment.width = 350  # 設置寬度
                 comment.height = 100  # 設置高度
                 cell.comment = comment
                 
@@ -495,3 +589,51 @@ def excel_process_VBA():
 
     # 保存
     committee_workbook.save(find_key_path("FINAL_COMMITTEE"))
+
+from datetime import datetime
+def update_peronsal_info_database(is_industry=False):
+    '''
+        更新暫存最新人才資料庫
+    '''
+    
+    # 讀取最新 Excel 檔案
+    if is_industry:
+        apply_list_folder_path = find_key_path("產學合作申請名冊")
+        file_name = value_of_key("產學合作申請名冊")
+    else:
+        apply_list_folder_path = find_key_path("研究計畫申請名冊") 
+        file_name = value_of_key("研究計畫申請名冊")  # 修正錯誤的 `file_name(file_name)`
+
+    apply_list_file = pd.ExcelFile(apply_list_folder_path)
+    
+    # 讀取暫存人才資料庫，若不存在則建立新的 DataFrame
+    personal_info_database_path = find_key_path("暫存最新人才資料庫")
+
+    if os.path.exists(personal_info_database_path):
+        personal_info_database = pd.read_excel(personal_info_database_path)
+    else:
+        personal_info_database = pd.DataFrame(columns=['名稱', '年份', '機關名稱', '職稱', '來源'])
+
+    new_data = []
+
+    for sheet in apply_list_file.sheet_names: 
+        current_sheet_apply_excel_data = pd.read_excel(apply_list_file, sheet_name=sheet)
+        for _, row in current_sheet_apply_excel_data.iterrows():
+            new_row = {
+                '名稱': row.get(value_of_key('申請主持人欄位名稱')), 
+                '年份': datetime.now().year - 1911,  # 直接填入現在的年份
+                '機關名稱': row.get(value_of_key('申請機構欄位名稱'), ''),
+                '職稱': row.get(value_of_key('職稱'), ''),
+                '來源': file_name,
+            }
+            new_data.append(new_row)
+
+    # 將新數據轉換為 DataFrame
+    new_data_df = pd.DataFrame(new_data)
+
+    # 合併數據，並以 "名稱" 為主鍵，保留最新年份的資料
+    updated_database = pd.concat([personal_info_database, new_data_df]).sort_values(by=['名稱', '年份'], ascending=[True, False])
+    updated_database = updated_database.drop_duplicates(subset=['名稱'], keep='first')  # 只保留最新的年份
+
+    # 儲存回 Excel
+    updated_database.to_excel(personal_info_database_path, index=False)

@@ -35,7 +35,7 @@ SOURCE:
 
     industry_coop: # 產學合作
       # 替換檔案
-      產學合作申請名冊: 1040214_小產學初審推薦表_E41.xlsx # 主要用於取得計畫名稱與關鍵字
+      產學合作申請名冊: 1140214_小產學初審推薦表_E41.xlsx # 主要用於取得計畫名稱與關鍵字
 
       # 以下是準備資料
       產學過去申請名冊: 108-112產學計畫E41申請名冊.xlsx
@@ -43,18 +43,21 @@ SOURCE:
     crawler: # 爬蟲資料
       查找碩博士名單: NST.xlsx # 要爬蟲的人才名單(計畫主持人, 學校)
       碩博士論文: NST_crawler.xlsx # 爬蟲輸出
-      碩博士論文_RDF: NST_crawler_RDF.xlsx # 標準化後的輸出
+      碩博士論文_RDF: NST_crawler_RDF.xlsx # 標準化後的輸出 #= 委員們過去就職過的學校
 
 OUTPUT:
   data:
     output: # 輸出的檔案
-      BGE_MANAGER: manager_group.json
-      BGE_INDUSTRY_MANAGER: manager_group_industry.json
       統計表分析: 推薦表統合與分析.xlsx
       過濾相近後統計表: 過濾相近後統計表.xlsx
-      統計清單人才資料_RDF: 統計清單人才資料_RDF.xlsx #= 委員們過去就職過的學校
+      FINAL_COMMITTEE: 1140214_小產學初審推薦表_E41_推薦表統合_VBA.xlsx
+
+    RDF_database:
+      BGE_INDUSTRY_MANAGER: manager_group_industry.json
+      BGE_MANAGER: manager_group.json
+      統計清單人才資料_RDF: 統計清單人才資料_RDF.xlsx
       統計清單人才資料_RDF_UNI: 統計清單人才資料_RDF_UNI.xlsx
-      FINAL_COMMITTEE: 1040214_小產學初審推薦表_E41_推薦表統合_VBA.xlsx
+      暫存最新人才資料庫: 暫存最新人才資料庫.xlsx
 
 DATABASE:
   database: # 資料庫
