@@ -1,13 +1,13 @@
 @echo off
 cd /d %~dp0
 
-:: 丟棄所有本地更改並強制拉取遠端代碼
+:: Drop the all changes in the working directory
 git reset --hard HEAD
 
-:: 更改遠端 URL 為 HTTPS
+:: Change the remote URL to HTTPS
 git remote set-url origin https://github.com/Chrouos/MOST_committee.git
 
-:: 拉取最新代碼
+:: Pull the latest changes from the remote repository
 git pull
 
 pause
