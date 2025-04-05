@@ -1,419 +1,351 @@
-﻿import sys
+﻿from ruamel.yaml import YAML
+from tkinter import Tk, filedialog, messagebox, StringVar, Label, Button, Toplevel, Listbox, MULTIPLE
+from tkinter.ttk import Combobox
 import os
-from ruamel.yaml import YAML
 from openpyxl import load_workbook
-from PyQt6.QtWidgets import (
-    QApplication,
-    QDialog,
-    QLabel,
-    QComboBox,
-    QPushButton,
-    QVBoxLayout,
-    QHBoxLayout,
-    QMessageBox,
-    QFileDialog,
-    QListWidget,
-    QListWidgetItem,
-    QAbstractItemView,
-    QScrollArea,
-    QWidget,
-    QGridLayout
-)
-from PyQt6.QtCore import Qt
 
 # 定義設定檔路徑
 DEFAULT_SETTING_YAML = "./setting.yaml"
 
-# 初始化 YAML 物件（保留引號等格式）
+# 初始化 YAML 物件
 yaml = YAML()
 yaml.preserve_quotes = True
 
-
-class SelectProjectAimDialog(QDialog):
+def select_and_update_project_aim(setting_data):
     """
-    讓使用者選擇目前執行計畫 ('產學合作' 或 '研究計畫')。
-    選擇完後更新 setting_data['SOURCE']['field']['目前執行計畫']。
+    使用 GUI 讓使用者選擇目前執行計畫 ('產學合作' 或 '研究計畫') 並更新設定資料。
+    :param setting_data: 讀取的設定資料字典
     """
-    def __init__(self, setting_data, parent=None):
-        super().__init__(parent)
-        self.setting_data = setting_data
-        self.setWindowTitle("計畫目標選擇")
-        self.resize(300, 150)
-
-        self.valid_project_aim_options = ["產學合作", "研究計畫"]
-
-        self.label = QLabel("請選擇目前執行計畫:")
-        self.combobox = QComboBox()
-        self.combobox.addItems(self.valid_project_aim_options)
-        # 預設值
-        self.combobox.setCurrentIndex(0)
-
-        self.confirm_button = QPushButton("確認")
-        self.confirm_button.clicked.connect(self.on_select)
-
-        layout = QVBoxLayout()
-        layout.addWidget(self.label)
-        layout.addWidget(self.combobox)
-        layout.addWidget(self.confirm_button)
-        self.setLayout(layout)
-
-    def on_select(self):
-        current_project_aim = self.combobox.currentText()
-        self.setting_data['SOURCE']['field']['目前執行計畫'] = current_project_aim
-        QMessageBox.information(self, "成功", f"目前執行計劃目標已經設定為: {current_project_aim}")
-        self.accept()  # 結束對話窗並回傳成功訊號
-
-
-class SelectFileUpdateProjectNameDialog(QDialog):
-    """
-    讓使用者在 GUI 中選擇對應檔案，並更新設定資料。
-    選擇完後同時更新 output 的最終統合檔名。
-    """
-    def __init__(self, setting_data, parent=None):
-        super().__init__(parent)
-        self.setting_data = setting_data
-        self.setWindowTitle("選擇資料名稱")
-        self.resize(400, 200)
-
-        self.current_aim = self.setting_data['SOURCE']['field']['目前執行計畫']
-
-        # 判斷初始資料夾
-        if self.current_aim == "研究計畫":
-            self.base_directory = os.path.abspath("./data/research_proj/")
-        else:
-            self.base_directory = os.path.abspath("./data/industry_coop/")
-
-        self.label = QLabel(f"請選擇 {self.current_aim} 的初始資料檔案")
-        self.select_button = QPushButton("選擇檔案")
-        self.select_button.clicked.connect(self.open_file_dialog)
-
-        layout = QVBoxLayout()
-        layout.addWidget(self.label)
-        layout.addWidget(self.select_button)
-        self.setLayout(layout)
-
-        self.selected_file_path = None  # 用來存放使用者選到的檔案路徑
-
-    def open_file_dialog(self):
-        file_dialog = QFileDialog(self, f"選擇 {self.current_aim} 的初始資料檔案", directory=self.base_directory)
-        file_dialog.setFileMode(QFileDialog.FileMode.ExistingFile)
-        if file_dialog.exec():
-            selected_files = file_dialog.selectedFiles()
-            if selected_files:
-                file_path = os.path.abspath(selected_files[0])
-                if file_path.startswith(self.base_directory):
-                    file_name = os.path.basename(file_path)
-                    # 更新 setting_data 中對應的檔名
-                    if self.current_aim == '研究計畫':
-                        self.setting_data['SOURCE']['data']['research_proj']['研究計畫申請名冊'] = file_name
-                    elif self.current_aim == '產學合作':
-                        self.setting_data['SOURCE']['data']['industry_coop']['產學合作申請名冊'] = file_name
-
-                    # 更新輸出檔名
-                    file_name_only = os.path.splitext(file_name)[0]
-                    self.setting_data['OUTPUT']['data']['output']['FINAL_COMMITTEE'] = file_name_only + "_推薦表統合_VBA.xlsx"
-
-                    QMessageBox.information(self, "成功", f"已更新檔案名稱為: {file_name}")
-                    self.selected_file_path = file_path
-                    self.accept()  # 結束對話窗並回傳成功訊號
-                else:
-                    QMessageBox.critical(self, "錯誤", "選擇的檔案不在允許的目錄內。")
-            else:
-                QMessageBox.critical(self, "錯誤", "未選擇任何檔案。")
-
-
-class SelectSheetFromExcelDialog(QDialog):
-    """
-    讀取 Excel 檔案中的 Sheet，讓使用者進行多選，更新 setting_data['SOURCE']['field']['計畫SHEET']。
-    """
-    def __init__(self, file_path, setting_data, parent=None):
-        super().__init__(parent)
-        self.file_path = file_path
-        self.setting_data = setting_data
-
-        self.setWindowTitle("選擇計畫 SHEET (所有 SHEET 欄位記得統一)")
-        self.resize(300, 300)
-
-        workbook = load_workbook(self.file_path, read_only=True)
-        self.sheets = workbook.sheetnames
-
-        self.label = QLabel("請選擇要使用的 SHEET（可多選）：")
-
-        self.list_widget = QListWidget()
-        self.list_widget.setSelectionMode(QAbstractItemView.SelectionMode.MultiSelection)
-        for sheet_name in self.sheets:
-            item = QListWidgetItem(sheet_name)
-            self.list_widget.addItem(item)
-
-        self.confirm_button = QPushButton("確認")
-        self.confirm_button.clicked.connect(self.on_select)
-
-        layout = QVBoxLayout()
-        layout.addWidget(self.label)
-        layout.addWidget(self.list_widget)
-        layout.addWidget(self.confirm_button)
-        self.setLayout(layout)
-
-    def on_select(self):
-        selected_items = self.list_widget.selectedItems()
-        if selected_items:
-            selected_sheets = [item.text() for item in selected_items]
-            self.setting_data['SOURCE']['field']['計畫SHEET'] = selected_sheets
-            QMessageBox.information(self, "成功", f"計畫 SHEET 已更新為: {', '.join(selected_sheets)}")
-            self.accept()  # 結束對話窗
-        else:
-            QMessageBox.critical(self, "錯誤", "至少選擇一個 SHEET。")
-
-
-class ConfirmAndUpdateProjectNameColumnDialog(QDialog):
-    """
-    確認 Excel Sheet 中的欄位，讓使用者選擇計畫相關欄位。
-    特別強調「申請主持人欄位」為必填。
-    """
-    def __init__(self, file_path, sheet_name, setting_data, parent=None):
-        super().__init__(parent)
-        self.file_path = file_path
-        self.sheet_name = sheet_name
-        self.setting_data = setting_data
-
-        self.setWindowTitle("確認計畫相關欄位")
-        self.resize(600, 600)
-
-        workbook = load_workbook(self.file_path, read_only=True)
-        sheet = workbook[self.sheet_name]
-        self.columns = [cell for cell in next(sheet.iter_rows(max_row=1, values_only=True))]
-
-        # 先讀取 setting 裏的舊值（若有）
-        self.current_project_name_col = self.setting_data['SOURCE']['field'].get('計畫名稱', '')
-        self.current_keyword_col = self.setting_data['SOURCE']['field'].get('中文關鍵字', '')
-        self.current_abstract_col = self.setting_data['SOURCE']['field'].get('計劃摘要', '')
-        self.current_personal_title_col = self.setting_data['SOURCE']['field'].get('職稱', '')
-
-        # 做一個可捲動區域
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        container = QWidget()
-        scroll.setWidget(container)
-
-        self.layout_main = QVBoxLayout(container)
-        self.layout_all = QVBoxLayout()
-        self._create_form_widgets()
-
-        # 最底下放一個「確認」按鈕
-        self.confirm_button = QPushButton("確認")
-        self.confirm_button.clicked.connect(self.on_confirm)
-        self.layout_main.addWidget(self.confirm_button)
-        self.layout_main.addStretch()
-
-        self.layout_all.addWidget(scroll)
-        self.setLayout(self.layout_all)
-
-    def _create_form_widgets(self):
-        """
-        建立整個表單（欄位選擇的下拉、複選清單等）
-        """
-        # 依序建立各段落
-        # 計畫名稱
-        label_proj_name = QLabel("請選擇屬於計畫名稱的欄位:")
-        self.combo_proj_name = QComboBox()
-        self.combo_proj_name.addItem("")
-        self.combo_proj_name.addItems(self.columns)
-        if self.current_project_name_col in self.columns:
-            self.combo_proj_name.setCurrentText(self.current_project_name_col)
-
-        # 中文關鍵字
-        label_keyword = QLabel("請選擇屬於中文關鍵字的欄位:")
-        self.combo_keyword = QComboBox()
-        self.combo_keyword.addItem("")
-        self.combo_keyword.addItems(self.columns)
-        if self.current_keyword_col in self.columns:
-            self.combo_keyword.setCurrentText(self.current_keyword_col)
-
-        # 計劃摘要
-        label_abstract = QLabel("請選擇屬於計劃摘要的欄位:")
-        self.combo_abstract = QComboBox()
-        self.combo_abstract.addItem("")
-        self.combo_abstract.addItems(self.columns)
-        if self.current_abstract_col in self.columns:
-            self.combo_abstract.setCurrentText(self.current_abstract_col)
-
-        # 申請機構
-        label_institute = QLabel("請選擇屬於申請機構(學校)的欄位:")
-        self.combo_institute = QComboBox()
-        self.combo_institute.addItem("")
-        self.combo_institute.addItems(self.columns)
-
-        # 主持人(必填)
-        label_leader = QLabel("請選擇屬於(計畫)主持人的欄位(必填):")
-        self.combo_leader = QComboBox()
-        self.combo_leader.addItem("")
-        self.combo_leader.addItems(self.columns)
-
-        # 職稱
-        label_title = QLabel("請選擇屬於職稱的欄位:")
-        self.combo_title = QComboBox()
-        self.combo_title.addItem("")
-        self.combo_title.addItems(self.columns)
-        if self.current_personal_title_col in self.columns:
-            self.combo_title.setCurrentText(self.current_personal_title_col)
-
-        # 其他欄位(多選)
-        label_others = QLabel("請選擇計畫相關其他欄位 (可複選):")
-        self.list_others = QListWidget()
-        self.list_others.setSelectionMode(QAbstractItemView.SelectionMode.MultiSelection)
-        for col in self.columns:
-            self.list_others.addItem(col)
-
-        # 共同主持人(多選)
-        label_co_leader = QLabel("請選擇共同(計畫)主持人的欄位 (可複選):")
-        self.list_co_leader = QListWidget()
-        self.list_co_leader.setSelectionMode(QAbstractItemView.SelectionMode.MultiSelection)
-        for col in self.columns:
-            self.list_co_leader.addItem(col)
-
-        # 共同機構(多選)
-        label_co_inst = QLabel("請選擇共同機構(學校)的欄位 (可複選):")
-        self.list_co_inst = QListWidget()
-        self.list_co_inst.setSelectionMode(QAbstractItemView.SelectionMode.MultiSelection)
-        for col in self.columns:
-            self.list_co_inst.addItem(col)
-
-        # 依序放進 layout
-        self.layout_main.addWidget(label_proj_name)
-        self.layout_main.addWidget(self.combo_proj_name)
-
-        self.layout_main.addWidget(label_keyword)
-        self.layout_main.addWidget(self.combo_keyword)
-
-        self.layout_main.addWidget(label_abstract)
-        self.layout_main.addWidget(self.combo_abstract)
-
-        self.layout_main.addWidget(label_institute)
-        self.layout_main.addWidget(self.combo_institute)
-
-        self.layout_main.addWidget(label_leader)
-        self.layout_main.addWidget(self.combo_leader)
-
-        self.layout_main.addWidget(label_title)
-        self.layout_main.addWidget(self.combo_title)
-
-        self.layout_main.addWidget(label_others)
-        self.layout_main.addWidget(self.list_others)
-
-        self.layout_main.addWidget(label_co_leader)
-        self.layout_main.addWidget(self.list_co_leader)
-
-        self.layout_main.addWidget(label_co_inst)
-        self.layout_main.addWidget(self.list_co_inst)
-
-    def on_confirm(self):
-        proj_name_col = self.combo_proj_name.currentText()
-        keyword_col = self.combo_keyword.currentText()
-        abstract_col = self.combo_abstract.currentText()
-        institute_col = self.combo_institute.currentText()
-        leader_col = self.combo_leader.currentText()
-        title_col = self.combo_title.currentText()
-
-        selected_others = [item.text() for item in self.list_others.selectedItems()]
-        selected_co_leader = [item.text() for item in self.list_co_leader.selectedItems()]
-        selected_co_institute = [item.text() for item in self.list_co_inst.selectedItems()]
-
-        # 必填檢查：主持人欄位
-        if not leader_col:
-            QMessageBox.critical(self, "錯誤", "【申請主持人欄位】不得為空，請選擇一個欄位。")
-            return
-
-        # 正常更新設定檔
-        self.setting_data['SOURCE']['field']['計畫名稱'] = proj_name_col
-        self.setting_data['SOURCE']['field']['中文關鍵字'] = keyword_col
-        self.setting_data['SOURCE']['field']['計劃摘要'] = abstract_col
-        self.setting_data['SOURCE']['field']['申請機構欄位名稱'] = institute_col
-        self.setting_data['SOURCE']['field']['申請主持人欄位名稱'] = leader_col
-        self.setting_data['SOURCE']['field']['職稱'] = title_col
-        self.setting_data['SOURCE']['field']['計畫相關其他欄位'] = selected_others
-        self.setting_data['SOURCE']['field']['申請共同主持人'] = selected_co_leader
-        self.setting_data['SOURCE']['field']['申請共同機構欄位名稱'] = selected_co_institute
-
-        msg = (
-            f"計畫名稱: {proj_name_col}\n"
-            f"中文關鍵字: {keyword_col}\n"
-            f"計劃摘要: {abstract_col}\n"
-            f"申請機構: {institute_col}\n"
-            f"主持人(必填): {leader_col}\n"
-            f"職稱: {title_col}\n"
-            f"其他欄位: {', '.join(selected_others) if selected_others else '無'}\n"
-            f"共同主持人: {', '.join(selected_co_leader) if selected_co_leader else '無'}\n"
-            f"共同機構: {', '.join(selected_co_institute) if selected_co_institute else '無'}"
-        )
-        QMessageBox.information(self, "成功", msg)
-        self.accept()
-
-
-def main():
-    app = QApplication(sys.argv)
-
-    try:
-        with open(DEFAULT_SETTING_YAML, 'r', encoding='utf-8') as file:
-            setting_data = yaml.load(file)
-
-        # 第一步：選擇目前執行計畫
-        dlg_aim = SelectProjectAimDialog(setting_data)
-        if dlg_aim.exec() != QDialog.DialogCode.Accepted:
-            # 若使用者取消或關閉視窗
-            return
-
-        # 寫回 yaml
-        with open(DEFAULT_SETTING_YAML, 'w', encoding='utf-8') as file:
-            yaml.dump(setting_data, file)
-
-        # 第二步：選擇檔案並更新檔案名稱
-        dlg_file = SelectFileUpdateProjectNameDialog(setting_data)
-        if dlg_file.exec() != QDialog.DialogCode.Accepted:
-            return
-
-        with open(DEFAULT_SETTING_YAML, 'w', encoding='utf-8') as file:
-            yaml.dump(setting_data, file)
-
-        # 根據目前執行計畫來決定檔案路徑
-        current_aim = setting_data['SOURCE']['field']['目前執行計畫']
-        if current_aim == "研究計畫":
-            file_path = os.path.join(os.path.abspath("./data/research_proj/"),
-                                     setting_data['SOURCE']['data']['research_proj']['研究計畫申請名冊'])
-        else:
-            file_path = os.path.join(os.path.abspath("./data/industry_coop/"),
-                                     setting_data['SOURCE']['data']['industry_coop']['產學合作申請名冊'])
-
-        # 第三步：選擇要使用的 Sheet (可多選)
-        dlg_sheet = SelectSheetFromExcelDialog(file_path, setting_data)
-        if dlg_sheet.exec() != QDialog.DialogCode.Accepted:
-            return
-
-        with open(DEFAULT_SETTING_YAML, 'w', encoding='utf-8') as file:
-            yaml.dump(setting_data, file)
-
-        # 取得使用者所選擇的 sheet
-        selected_sheets = setting_data['SOURCE']['field']['計畫SHEET']
-        if not selected_sheets:
-            QMessageBox.critical(None, "錯誤", "未選擇任何 SHEET，程式終止。")
-            return
-
-        # 第四步：確認並更新計畫相關欄位 (僅以第一個 sheet 為例)
-        dlg_columns = ConfirmAndUpdateProjectNameColumnDialog(file_path, selected_sheets[0], setting_data)
-        if dlg_columns.exec() != QDialog.DialogCode.Accepted:
-            return
-
-        with open(DEFAULT_SETTING_YAML, 'w', encoding='utf-8') as file:
-            yaml.dump(setting_data, file)
-
-        QMessageBox.information(None, "完成", "設定已成功更新並存回檔案。")
-        app.quit()
-
-    except Exception as e:
-        QMessageBox.critical(None, "錯誤", f"發生錯誤，無法更新設定檔。\n{e}")
-    finally:
-        print("程式結束，請檢查設定檔是否已更新。")
-        sys.exit(app.exec())
+    root = Tk()
+    root.title("計畫目標選擇")
+    root.geometry("300x150")
     
+    valid_project_aim_options = ["產學合作", "研究計畫"]
 
-if __name__ == "__main__":
-    main()
+    selected_aim = StringVar()
+    selected_aim.set(valid_project_aim_options[0])  # 預設值
+
+    label = Label(root, text="請選擇目前執行計畫:")
+    label.pack(pady=10)
+
+    combobox = Combobox(root, textvariable=selected_aim, values=valid_project_aim_options, state="readonly")
+    combobox.pack(pady=10)
+
+    def on_select():
+        current_project_aim = selected_aim.get()
+        setting_data['SOURCE']['field']['目前執行計畫'] = current_project_aim
+        messagebox.showinfo("成功", f"目前執行計劃目標已經設定為: {current_project_aim}")
+        root.destroy()  # 正確關閉視窗
+
+    button = Button(root, text="確認", command=on_select)
+    button.pack(pady=10)
+    
+    root.mainloop()
+
+def select_the_file_update_project_name(setting_data):
+    """
+    使用 GUI 讓使用者選擇一個檔案，並根據目前執行計畫更新對應的檔案名稱和副檔名。
+    限制檔案選擇在 ./data 資料夾下的任何子資料夾。
+    :param setting_data: 讀取的設定資料字典
+    """
+    root = Tk()
+    root.title("選擇資料名稱")
+    root.geometry("300x150")
+    
+    current_aim = setting_data['SOURCE']['field']['目前執行計畫']
+
+    if current_aim == "研究計畫": 
+        base_directory = os.path.abspath("./data/research_proj/")
+    elif current_aim == "產學合作": 
+        base_directory = os.path.abspath("./data/industry_coop/")
+
+    file_window = Toplevel(root)
+    file_window.title("選擇檔案")
+    file_window.geometry("400x200")
+
+    def open_file_dialog():
+        file_path = filedialog.askopenfilename(initialdir=base_directory, title=f"選擇 {current_aim} 的初始資料檔案")
+        if file_path:
+            file_path = os.path.abspath(file_path)
+            if file_path.startswith(base_directory):
+                file_name = os.path.basename(file_path)
+                if current_aim == '研究計畫':
+                    setting_data['SOURCE']['data']['research_proj']['研究計畫申請名冊'] = file_name
+                elif current_aim == '產學合作':
+                    setting_data['SOURCE']['data']['industry_coop']['產學合作申請名冊'] = file_name
+                    
+                file_name_only = os.path.splitext(file_name)[0]
+                setting_data['OUTPUT']['data']['output']['FINAL_COMMITTEE'] = file_name_only + "_推薦表統合_VBA.xlsx"
+                messagebox.showinfo("成功", f"已更新檔案名稱為: {file_name}")
+                file_window.destroy()  # 正確關閉視窗
+                root.destroy()  # 關閉主視窗
+                # 呼叫下一步驟的函數來選擇 Sheet
+                select_sheet_from_excel(file_path, setting_data)
+            else:
+                messagebox.showerror("錯誤", "選擇的檔案不在允許的目錄內。")
+        else:
+            messagebox.showerror("錯誤", "未選擇任何檔案。")
+
+    label = Label(file_window, text=f"請選擇 {current_aim} 的初始資料檔案")
+    label.pack(pady=20)
+
+    select_button = Button(file_window, text="選擇檔案", command=open_file_dialog)
+    select_button.pack(pady=20)
+
+    root.withdraw()
+    file_window.mainloop()
+
+def select_sheet_from_excel(file_path, setting_data):
+    """
+    讀取 Excel 檔案中的 Sheet，並讓使用者選擇要使用的 Sheet 名稱。
+    更新設定資料的 '計畫SHEET' 欄位為 LIST。
+    :param file_path: Excel 檔案的路徑
+    :param setting_data: 讀取的設定資料字典
+    """
+    root = Tk()
+    root.title("選擇計畫 SHEET (所有 SHEET 欄位記得統一)")
+    root.geometry("300x300")
+
+    # 讀取 Excel 檔案中的 Sheets
+    workbook = load_workbook(file_path, read_only=True)
+    sheets = workbook.sheetnames
+
+    # 使用 Listbox 進行多選
+    listbox = Listbox(root, selectmode=MULTIPLE)
+    for sheet in sheets:
+        listbox.insert('end', sheet)
+    listbox.pack(pady=20)
+
+    def on_select():
+        selected_indices = listbox.curselection()
+        selected_sheets = [sheets[i] for i in selected_indices]
+        if selected_sheets:
+            setting_data['SOURCE']['field']['計畫SHEET'] = selected_sheets
+            messagebox.showinfo("成功", f"計畫 SHEET 已更新為: {', '.join(selected_sheets)}")
+            root.destroy()  # 正確關閉視窗
+        else:
+            messagebox.showerror("錯誤", "至少選擇一個 SHEET。")
+
+    button = Button(root, text="確認", command=on_select)
+    button.pack(pady=10)
+
+    root.mainloop()
+
+def confirm_and_update_project_name_column(file_path, sheet_name, setting_data):
+    """
+    確認 Excel Sheet 中的欄位，並讓使用者選擇計畫相關的欄位。
+    特別注意：此處強制「申請主持人欄位」為必填。
+    """
+    import openpyxl
+    from tkinter import Tk, Label, Button, Listbox, MULTIPLE, messagebox, StringVar, END
+    from tkinter.ttk import Combobox, Scrollbar
+    from tkinter import Frame, Canvas, VERTICAL, BOTH, LEFT, RIGHT, Y
+
+    root = Tk()
+    root.title("確認計畫相關欄位 - 可捲動置中")
+    root.geometry("600x600")
+
+    workbook = openpyxl.load_workbook(file_path, read_only=True)
+    sheet = workbook[sheet_name]
+    columns = [cell for cell in next(sheet.iter_rows(max_row=1, values_only=True))]
+
+    # ----- 建立主框架與 Canvas + Scrollbar -----
+    main_frame = Frame(root)
+    main_frame.pack(fill=BOTH, expand=1)
+
+    my_canvas = Canvas(main_frame)
+    my_canvas.pack(side=LEFT, fill=BOTH, expand=1)
+
+    my_scrollbar = Scrollbar(main_frame, orient=VERTICAL, command=my_canvas.yview)
+    my_scrollbar.pack(side=RIGHT, fill=Y)
+
+    my_canvas.configure(yscrollcommand=my_scrollbar.set)
+
+    # 建立一個實際裝表單內容的 Frame，先以 (0,0) anchor='nw' 方式放到 Canvas 裏
+    form_frame = Frame(my_canvas)
+    form_window = my_canvas.create_window((0, 0), window=form_frame, anchor="nw")
+
+    # 透過事件綁定，讓內容可隨視窗變動而捲動、置中
+    def on_configure(event):
+        my_canvas.configure(scrollregion=my_canvas.bbox("all"))
+        canvas_width = event.width
+        form_width = form_frame.winfo_reqwidth()
+        if form_width < canvas_width:
+            x_offset = (canvas_width - form_width) // 2
+        else:
+            x_offset = 0
+        my_canvas.coords(form_window, x_offset, 0)
+
+    my_canvas.bind("<Configure>", on_configure)
+
+    # ----- 以下放所有的表單元素到 form_frame 裏 -----
+    selected_project_name_column = StringVar()
+    selected_keyword_column = StringVar()
+    selected_abstract_column = StringVar()
+    selected_institution_column = StringVar()
+    selected_lead_researcher_column = StringVar()
+    selected_personal_title_column = StringVar()
+
+    # 讀取 setting 裡的舊值 (若有)
+    current_project_name_column = setting_data['SOURCE']['field'].get('計畫名稱', '')
+    current_keyword_column = setting_data['SOURCE']['field'].get('中文關鍵字', '')
+    current_abstract_column = setting_data['SOURCE']['field'].get('計劃摘要', '')
+    current_personal_title_column = setting_data['SOURCE']['field'].get('職稱', '')
+
+    selected_project_name_column.set(current_project_name_column if current_project_name_column in columns else "")
+    selected_keyword_column.set(current_keyword_column if current_keyword_column in columns else "")
+    selected_abstract_column.set(current_abstract_column if current_abstract_column in columns else "")
+    selected_institution_column.set("")
+    selected_lead_researcher_column.set("")
+    selected_personal_title_column.set(current_personal_title_column if current_personal_title_column in columns else "")
+
+    # 計畫名稱
+    Label(form_frame, text="請選擇屬於計畫名稱的欄位:").pack(pady=5)
+    project_name_combobox = Combobox(form_frame, textvariable=selected_project_name_column, 
+                                     values=[""] + columns, state="readonly")
+    project_name_combobox.pack(pady=5)
+
+    # 中文關鍵字
+    Label(form_frame, text="請選擇屬於中文關鍵字的欄位:").pack(pady=5)
+    keyword_combobox = Combobox(form_frame, textvariable=selected_keyword_column, 
+                                values=[""] + columns, state="readonly")
+    keyword_combobox.pack(pady=5)
+    
+    # 計劃摘要
+    Label(form_frame, text="請選擇屬於計劃摘要的欄位:").pack(pady=5)
+    abstract_combobox = Combobox(form_frame, textvariable=selected_abstract_column, 
+                                 values=[""] + columns, state="readonly")
+    abstract_combobox.pack(pady=5)
+
+    # 申請機構
+    Label(form_frame, text="請選擇屬於申請機構(學校)的欄位:").pack(pady=5)
+    institution_combobox = Combobox(form_frame, textvariable=selected_institution_column, 
+                                    values=[""] + columns, state="readonly")
+    institution_combobox.pack(pady=5)
+
+    # (計畫)主持人 => 必填
+    Label(form_frame, text="請選擇屬於(計畫)主持人的欄位(必填):").pack(pady=5)
+    lead_researcher_combobox = Combobox(form_frame, textvariable=selected_lead_researcher_column, 
+                                        values=[""] + columns, state="readonly")
+    lead_researcher_combobox.pack(pady=5)
+
+    # 職稱
+    Label(form_frame, text="請選擇屬於職稱的欄位:").pack(pady=5)
+    personal_title_combobox = Combobox(form_frame, textvariable=selected_personal_title_column, 
+                                       values=[""] + columns, state="readonly")
+    personal_title_combobox.pack(pady=5)
+
+    # 計畫相關其他欄位（多選）
+    Label(form_frame, text="請選擇計畫相關其他欄位 (可複選):").pack(pady=5)
+    other_related_fields_listbox = Listbox(form_frame, selectmode=MULTIPLE, height=5, exportselection=False)
+    for column in columns:
+        other_related_fields_listbox.insert(END, column)
+    other_related_fields_listbox.pack(pady=5)
+
+    # 共同主持人（多選）
+    Label(form_frame, text="請選擇共同(計畫)主持人的欄位 (可複選):").pack(pady=5)
+    co_lead_researchers_listbox = Listbox(form_frame, selectmode=MULTIPLE, height=5, exportselection=False)
+    for column in columns:
+        co_lead_researchers_listbox.insert(END, column)
+    co_lead_researchers_listbox.pack(pady=5)
+
+    # 共同機構（多選）
+    Label(form_frame, text="請選擇共同機構(學校)的欄位 (可複選):").pack(pady=5)
+    co_institutions_listbox = Listbox(form_frame, selectmode=MULTIPLE, height=5, exportselection=False)
+    for column in columns:
+        co_institutions_listbox.insert(END, column)
+    co_institutions_listbox.pack(pady=5)
+
+    def on_select():
+        # 讀取使用者選擇
+        project_name_column = selected_project_name_column.get()
+        keyword_column = selected_keyword_column.get()
+        abstract_column = selected_abstract_column.get()
+        inst_column = selected_institution_column.get()
+        lead_researcher_column = selected_lead_researcher_column.get()
+        personal_title_col = selected_personal_title_column.get()
+
+        selected_indices_other = other_related_fields_listbox.curselection()
+        selected_other_related = [columns[i] for i in selected_indices_other]
+
+        selected_indices_co_lead = co_lead_researchers_listbox.curselection()
+        selected_co_lead_researchers = [columns[i] for i in selected_indices_co_lead]
+
+        selected_indices_co_inst = co_institutions_listbox.curselection()
+        selected_co_institutions = [columns[i] for i in selected_indices_co_inst]
+
+        # -- 必填檢查: 申請主持人 --
+        if not lead_researcher_column:
+            messagebox.showerror("錯誤", "【申請主持人欄位】不得為空，請選擇一個欄位。")
+            return
+
+        # 其他邏輯可依需求做必填檢查，例如若需要「計畫名稱」「中文關鍵字」也必填：
+        # if not project_name_column:
+        #     messagebox.showerror("錯誤", "【計畫名稱欄位】不得為空，請選擇一個欄位。")
+        #     return
+
+        # if not keyword_column:
+        #     messagebox.showerror("錯誤", "【中文關鍵字欄位】不得為空，請選擇一個欄位。")
+        #     return
+
+        # 正常更新 setting
+        setting_data['SOURCE']['field']['計畫名稱'] = project_name_column
+        setting_data['SOURCE']['field']['中文關鍵字'] = keyword_column
+        setting_data['SOURCE']['field']['計劃摘要'] = abstract_column
+        setting_data['SOURCE']['field']['申請機構欄位名稱'] = inst_column
+        setting_data['SOURCE']['field']['申請主持人欄位名稱'] = lead_researcher_column
+        setting_data['SOURCE']['field']['職稱'] = personal_title_col
+        setting_data['SOURCE']['field']['計畫相關其他欄位'] = selected_other_related
+        setting_data['SOURCE']['field']['申請共同主持人'] = selected_co_lead_researchers
+        setting_data['SOURCE']['field']['申請共同機構欄位名稱'] = selected_co_institutions
+
+        messagebox.showinfo(
+            "成功",
+            f"計畫名稱: {project_name_column}\n"
+            f"中文關鍵字: {keyword_column}\n"
+            f"計劃摘要: {abstract_column}\n"
+            f"申請機構: {inst_column}\n"
+            f"主持人(必填): {lead_researcher_column}\n"
+            f"職稱: {personal_title_col}\n"
+            f"其他欄位: {', '.join(selected_other_related) if selected_other_related else '無'}\n"
+            f"共同主持人: {', '.join(selected_co_lead_researchers) if selected_co_lead_researchers else '無'}\n"
+            f"共同機構: {', '.join(selected_co_institutions) if selected_co_institutions else '無'}"
+        )
+        root.destroy()
+
+    Button(form_frame, text="確認", command=on_select).pack(pady=10)
+
+    root.mainloop()
+
+try:
+    with open(DEFAULT_SETTING_YAML, 'r', encoding='utf-8') as file:
+        setting_data = yaml.load(file)
+
+    select_and_update_project_aim(setting_data)
+    with open(DEFAULT_SETTING_YAML, 'w', encoding='utf-8') as file:
+        yaml.dump(setting_data, file)
+        
+    select_the_file_update_project_name(setting_data)
+    with open(DEFAULT_SETTING_YAML, 'w', encoding='utf-8') as file:
+        yaml.dump(setting_data, file)
+
+    # 根據目前執行計畫來決定檔案路徑
+    current_aim = setting_data['SOURCE']['field']['目前執行計畫']
+    if current_aim == "研究計畫":
+        file_path = os.path.join(os.path.abspath("./data/research_proj/"), setting_data['SOURCE']['data']['research_proj']['研究計畫申請名冊'])
+    elif current_aim == "產學合作":
+        file_path = os.path.join(os.path.abspath("./data/industry_coop/"), setting_data['SOURCE']['data']['industry_coop']['產學合作申請名冊'])
+
+    # 取得選擇的計畫 SHEET 名稱
+    sheet_name = setting_data['SOURCE']['field']['計畫SHEET']
+    confirm_and_update_project_name_column(file_path, sheet_name[0], setting_data)
+
+    with open(DEFAULT_SETTING_YAML, 'w', encoding='utf-8') as file:
+        yaml.dump(setting_data, file)
+
+    messagebox.showinfo("完成", "設定已成功更新並存回檔案。")
+
+except Exception as e:
+    messagebox.showerror("錯誤", f"發生錯誤，無法更新設定檔。\n{e}")
+finally:
+    pass
