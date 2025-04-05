@@ -111,8 +111,9 @@ RuntimeError: uvloop does not support Windows at the moment
 > 2025-02-04 10:00:33.574 python3[5875:83556] +[IMKClient subclass]: chose IMKClient_Legacy
 > 2025-02-04 10:00:33.574 python3[5875:83556] +[IMKInputSession subclass]: chose IMKInputSession_Legacy
 
-```
-brew reinstall tcl-tk
+```shell
+# brew reinstall tcl-tk
+brew install python-tk
 
 export PATH="/opt/homebrew/opt/tcl-tk/bin:$PATH"
 export LDFLAGS="-L/opt/homebrew/opt/tcl-tk/lib"
@@ -124,5 +125,5 @@ source ~/.zshrc
 
 
 # TODO
-+ [ ] 1.助理教授不能審教授或研究員，2.助研究員不能審教授或研究員。3.同校直接避開
++ [x] 1.助理教授不能審教授或研究員，2.助研究員不能審教授或研究員。3.同校直接避開
 

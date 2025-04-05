@@ -103,9 +103,6 @@ def search_v3(is_industry=False):
     
     # 取得計畫相關的欄位值
     tabs = value_of_key("計畫SHEET")
-    project_name_field_name = value_of_key("計畫名稱")
-    chinese_keyword_field_name = value_of_key("中文關鍵字")
-    abstract_field_name = value_of_key("計劃摘要")
 
     # 取得輸出 Excel 檔案的資料夾路徑
     output_excel_folder_path = find_key_path("統計表分析")
@@ -124,7 +121,30 @@ def search_v3(is_industry=False):
     
     # 要輸出的欄位
     other_fields = value_of_key("計畫相關其他欄位")
-    required_fields = [project_name_field_name, chinese_keyword_field_name, abstract_field_name]
+    required_fields = []
+    keys = [
+        "計畫名稱",
+        "中文關鍵字",
+        "計劃摘要",
+        "職稱",
+        "申請主持人欄位名稱",
+        "申請機構欄位名稱",
+        
+    ]
+    for key in keys:
+        temp_value = value_of_key(key)
+        if temp_value is not None:
+            required_fields.append(temp_value)
+        
+    multi_keys = [
+        "申請共同主持人"
+    ]
+    for key in multi_keys:
+        temp_value = value_of_key(key)
+        for value in temp_value:
+            if value not in required_fields:
+                required_fields.append(value)
+    
     filter_fields = required_fields + [f for f in other_fields if f not in required_fields]
 
     RECOMMAND_AMOUNT = 10   # 要推薦的委員數量
@@ -139,6 +159,10 @@ def search_v3(is_industry=False):
     similarity_df = pd.DataFrame(columns=["query_text", "compared_text", "recommended_manager", "model_name", "similarity_score"])
     
     try:
+        project_name_field_name = value_of_key("計畫名稱")
+        chinese_keyword_field_name = value_of_key("中文關鍵字")
+        abstract_field_name = value_of_key("計劃摘要")
+        
         for tab in tabs:
             page_manager_list = []
 
@@ -376,10 +400,8 @@ def filter_committee(is_industry=False):
     statistical_analysis_folder_path = find_key_path("統計表分析") 
     statistical_analysis_file = pd.ExcelFile(statistical_analysis_folder_path)
     
-    if is_industry:
-        apply_list_folder_path = find_key_path("產學合作申請名冊")
-    else:
-        apply_list_folder_path = find_key_path("研究計畫申請名冊") 
+    if is_industry: apply_list_folder_path = find_key_path("產學合作申請名冊")
+    else: apply_list_folder_path = find_key_path("研究計畫申請名冊") 
         
     apply_list_file = pd.ExcelFile(apply_list_folder_path)
     

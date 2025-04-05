@@ -150,3 +150,6 @@ wheel==0.45.1
 wrapt==1.16.0
 yarl==1.13.1
 zipp==3.20.2
+PyQt6==6.8.1
+PyQt6-Qt6==6.8.2
+PyQt6_sip==13.10.0
