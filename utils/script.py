@@ -611,6 +611,7 @@ def excel_process_VBA():
 
     # 保存
     committee_workbook.save(find_key_path("FINAL_COMMITTEE"))
+    print(f"[結束] 已經保存至: {find_key_path('FINAL_COMMITTEE')}")
 
 from datetime import datetime
 def update_peronsal_info_database(is_industry=False):
