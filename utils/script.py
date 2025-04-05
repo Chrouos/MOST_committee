@@ -133,7 +133,7 @@ def search_v3(is_industry=False):
     ]
     for key in keys:
         temp_value = value_of_key(key)
-        if temp_value is not None:
+        if temp_value is not None and temp_value != '':
             required_fields.append(temp_value)
         
     multi_keys = [
@@ -142,7 +142,7 @@ def search_v3(is_industry=False):
     for key in multi_keys:
         temp_value = value_of_key(key)
         for value in temp_value:
-            if value not in required_fields:
+            if value not in required_fields and value != '':
                 required_fields.append(value)
     
     filter_fields = required_fields + [f for f in other_fields if f not in required_fields]
